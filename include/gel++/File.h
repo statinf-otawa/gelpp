@@ -1,0 +1,60 @@
+/*
+ * GEL++ File interface
+ * Copyright (c) 2016, IRIT- université de Toulouse
+ *
+ * GEL++ is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * GEL++ is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GEL++; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#ifndef GELPP_FILE_H_
+#define GELPP_FILE_H_
+
+#include <elm/sys/Path.h>
+#include <gel++/base.h>
+
+namespace gel {
+
+using namespace elm;
+class Manager;
+
+class File {
+public:
+	typedef enum {
+		no_type,
+		program,
+		library
+	} type_t;
+
+	File(Manager& manager, sys::Path path);
+	virtual ~File(void);
+
+	inline sys::Path path(void) const { return _path; }
+	inline io::IntFormat format(address_t a) { return gel::format(addressType(), a); }
+
+	virtual type_t type(void) = 0;
+	virtual bool isBigEndian(void) = 0;
+	virtual address_type_t addressType(void) = 0;
+	virtual address_t entry(void) = 0;
+
+protected:
+	Manager& man;
+private:
+	sys::Path _path;
+};
+
+io::Output& operator<<(io::Output& out, File::type_t t);
+
+} // gel
+
+#endif /* GELPP_FILE_H_ */
