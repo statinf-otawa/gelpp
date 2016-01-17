@@ -20,6 +20,7 @@
 #include <elm/sys/System.h>
 #include <gel++.h>
 #include <gel++/elf/defs.h>
+#include <gel++/elf/File.h>
 
 namespace gel {
 
@@ -76,6 +77,13 @@ File *Manager::openFile(sys::Path path) throw(gel::Exception) {
  * @throw gel::Exception	If there is an error.
  */
 elf::File *Manager::openELFFile(sys::Path path) throw(gel::Exception) {
+	try {
+		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
+		return new elf::File(*this, path, s);
+	}
+	catch(sys::SystemException& e) {
+		throw Exception(e.message());
+	}
 	return 0;
 }
 
@@ -95,5 +103,18 @@ io::IntFormat format(address_type_t t, address_t a) {
 	default:			ASSERT(false); return a;
 	}
 }
+
+
+/**
+ * @class Buffer
+ * Class representing a content of an executable file. It provides
+ * facilities to access data in the buffer and prevent out-of-buffer
+ * accesses.
+ */
+
+/**
+ * Null buffer.
+ */
+Buffer Buffer::null;
 
 } // gel

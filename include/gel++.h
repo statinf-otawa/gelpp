@@ -21,8 +21,8 @@
 
 #include <elm/sys/Path.h>
 #include <elm/util/ErrorHandler.h>
-#include <gel++/elf/File.h>
 #include <gel++/Exception.h>
+#include <gel++/File.h>
 
 namespace gel {
 

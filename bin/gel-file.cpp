@@ -21,7 +21,7 @@
 #include <elm/options.h>
 #include <elm/io.h>
 #include <gel++.h>
-#include <gel++/elf/defs.h>
+#include <gel++/elf/File.h>
 
 using namespace elm;
 using namespace option;
@@ -71,14 +71,15 @@ public:
 					if(show_all)
 						cout << "\nELF INFORMATION\n";
 					io::IntFormat f16 = io::pad('0', io::right(io::width(4, 0)));
-					cout << "type = " << get_type(ef->elfType()) << " (" << f16(ef->elfType()) << ")\n";
-					cout << "machine = " << get_machine(ef->machine()) << " (" << f16(ef->machine()) << ")\n";
-					cout << "version = " << ef->version() << io::endl;
+					const elf::Elf32_Ehdr& info = ef->info();
+					cout << "type = " << get_type(info.e_type) << " (" << f16(info.e_type) << ")\n";
+					cout << "machine = " << get_machine(info.e_machine) << " (" << f16(info.e_machine) << ")\n";
+					cout << "version = " << info.e_version << io::endl;
 					cout << "identification\n";
-					display_block(ef->ident(), EI_NIDENT, 4);
-					cout << "ident[EI_CLASS] = " << get_class(ef->ident()[EI_CLASS]) << " (" << ef->ident()[EI_CLASS] << ")\n";
-					cout << "ident[EI_DATA] = " << get_data(ef->ident()[EI_DATA]) << " (" << ef->ident()[EI_DATA] << ")\n";
-					cout << "ident[EI_OSABI] = " <<ef->ident()[EI_OSABI] << "\n";
+					display_block(info.e_ident, EI_NIDENT, 4);
+					cout << "ident[EI_CLASS] = " << get_class(info.e_ident[EI_CLASS]) << " (" << info.e_ident[EI_CLASS] << ")\n";
+					cout << "ident[EI_DATA] = " << get_data(info.e_ident[EI_DATA]) << " (" << info.e_ident[EI_DATA] << ")\n";
+					cout << "ident[EI_OSABI] = " << info.e_ident[EI_OSABI] << "\n";
 				}
 
 				delete f;

@@ -20,14 +20,30 @@
 #define GELPP_ELF_FILE_H_
 
 #include <elm/io/RandomAccessStream.h>
+#include <elm/genstruct/Vector.h>
 #include "../Exception.h"
 #include "../File.h"
+#include "defs.h"
 
 namespace gel { namespace elf {
 
-struct Elf32_Ehdr;
+class Section {
+public:
+	Section(void);
+	Section(elf::File *file, Elf32_Shdr *entry);
+	~Section(void);
+	cstring name(void) throw(gel::Exception);
+	const Elf32_Shdr& info(void) { return *e; }
+	Buffer content(void) throw(gel::Exception);
+private:
+	elf::File *_file;
+	Elf32_Shdr *e;
+	t::uint8 *buf;
+};
+
 
 class File: public gel::File {
+	friend class Section;
 public:
 	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception);
 	virtual ~File(void);
@@ -38,21 +54,25 @@ public:
 	virtual address_type_t addressType(void);
 	virtual address_t entry(void);
 
-	t::uint16 elfType(void);
-	t::uint8 *ident(void);
-	t::uint16 machine(void);
-	t::uint32 version(void);
-	t::uint32 flags(void);
+	const Elf32_Ehdr& info(void) const { return *h; }
+	typedef genstruct::Vector<Section>::Iterator SecIter;
+	genstruct::Vector<Section>& sections(void) throw(gel::Exception);
+
+	cstring stringAt(t::uint32 offset) throw(gel::Exception);
 
 private:
 	void read(void *buf, t::uint32 size) throw(Exception);
+	void readAt(t::uint32 pos, void *buf, t::uint32 size) throw(Exception);
 	void fix(t::uint16& i);
 	void fix(t::int16& i);
 	void fix(t::uint32& i);
 	void fix(t::int32& i);
 
-	struct elf::Elf32_Ehdr *h;
+	Elf32_Ehdr *h;
 	io::RandomAccessStream *s;
+	t::uint8 *sec_buf;
+	Section *str_tab;
+	genstruct::Vector<Section> sects;
 };
 
 } }	// gel::elf

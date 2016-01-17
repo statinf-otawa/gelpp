@@ -26,6 +26,8 @@ namespace gel {
 using namespace elm;
 
 typedef t::uint64 address_t;
+typedef t::uint64 size_t;
+typedef t::uint64 offset_t;
 
 typedef enum {
 	address_8,
@@ -36,6 +38,33 @@ typedef enum {
 
 io::IntFormat format(address_type_t t, address_t a);
 
-}
+class Buffer {
+public:
+	inline Buffer(void): b(0), s(0) { }
+	inline Buffer(t::uint8 *buffer, size_t size): b(buffer), s(size) { }
+
+	inline t::uint8 *buffer(void) const { return b; }
+	inline size_t size(void) const { return s; }
+	static Buffer null;
+	inline bool isNull(void) const { return !b; }
+	inline bool equals(const Buffer& buf) const { return b == buf.b && s == buf.s; }
+
+	inline t::uint8 *at(offset_t offset) const
+		{ ASSERT(offset < s); return b + offset; }
+	template <class T> inline T get(offset_t offset) const
+		{ ASSERT(offset + sizeof(T) <= s); return *(T *)(b + offset); }
+	inline cstring string(offset_t offset) const
+		{ ASSERT(offset < s); return (const char *)(b + offset); }
+
+	inline operator bool(void) const { return !isNull(); }
+	inline bool operator==(const Buffer& b) const { return equals(b); }
+	inline bool operator!=(const Buffer& b) const { return !equals(b); }
+
+private:
+	t::uint8 *b;
+	size_t s;
+};
+
+} // gel
 
 #endif /* INCLUDE_GEL___BASE_H_ */
