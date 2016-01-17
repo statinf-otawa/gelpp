@@ -82,6 +82,13 @@ void File::read(void *buf, t::uint32 size) throw(Exception) {
 
 /**
  */
+File *File::toELF(void) {
+	return this;
+}
+
+
+/**
+ */
 File::type_t File::type(void) {
 	switch(h->e_type) {
 	case ET_NONE:
@@ -112,6 +119,15 @@ address_type_t File::addressType(void) {
  */
 address_t File::entry(void) {
 	return h->e_entry;
+}
+
+
+/**
+ * Get the machine identifier of ELF file.
+ * @return	ELF type.
+ */
+t::uint16 File::elfType(void) {
+	return h->e_type;
 }
 
 

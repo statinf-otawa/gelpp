@@ -32,11 +32,13 @@ public:
 	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception);
 	virtual ~File(void);
 
+	virtual File *toELF(void);
 	virtual type_t type(void);
 	virtual bool isBigEndian(void);
 	virtual address_type_t addressType(void);
 	virtual address_t entry(void);
 
+	t::uint16 elfType(void);
 	t::uint8 *ident(void);
 	t::uint16 machine(void);
 	t::uint32 version(void);

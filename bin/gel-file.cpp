@@ -34,36 +34,65 @@ public:
 			.copyright("Copyright (c) 2016	, université de Toulouse")
 			.description("Provide basic information about a binary file")
 			.free_argument("BINARY_FILE")),
-		all(SwitchOption::Make(*this).cmd("-a").description("display all information"))
+		show_all(SwitchOption::Make(*this).cmd("-a").description("display all information")),
+		show_elf(SwitchOption::Make(*this).cmd("-e").description("display ELF information (if any)"))
 	{
+	}
+
+	int run(int argc, char **argv) {
+
+		// parse arguments
+		try {
+			parse(argc, argv);
+			if(!args)
+				throw OptionException("at least one executable file required!");
+		}
+		catch(OptionException& e) {
+			displayHelp();
+			cerr << "\nERROR: " << e.message() << io::endl;
+			return 1;
+		}
+
+		// process files
+		for(int i = 0; i < args.count(); i++) {
+			try {
+				File *f = gel::Manager::open(args[i]);
+
+				// common part
+				if(!show_elf || show_all) {
+		 			cout << "file name = " << f->path() << io::endl;
+					cout << "type = " << f->type() << io::endl;
+					cout << "entry = " << f->format(f->entry()) << io::endl;
+				}
+
+				// ELF specialization
+				elf::File *ef = f->toELF();
+				if(ef && (show_elf || show_all)) {
+					if(show_all)
+						cout << "\nELF INFORMATION\n";
+					io::IntFormat f16 = io::pad('0', io::right(io::width(4, 0)));
+					cout << "type = " << get_type(ef->elfType()) << " (" << f16(ef->elfType()) << ")\n";
+					cout << "machine = " << get_machine(ef->machine()) << " (" << f16(ef->machine()) << ")\n";
+					cout << "version = " << ef->version() << io::endl;
+					cout << "identification\n";
+					display_block(ef->ident(), EI_NIDENT, 4);
+					cout << "ident[EI_CLASS] = " << get_class(ef->ident()[EI_CLASS]) << " (" << ef->ident()[EI_CLASS] << ")\n";
+					cout << "ident[EI_DATA] = " << get_data(ef->ident()[EI_DATA]) << " (" << ef->ident()[EI_DATA] << ")\n";
+					cout << "ident[EI_OSABI] = " <<ef->ident()[EI_OSABI] << "\n";
+				}
+
+				delete f;
+			}
+			catch(gel::Exception& e) {
+				cerr << "ERROR: " << e.message() << io::endl;
+			}
+		}
 	}
 
 protected:
 
 	virtual void process(String arg) {
-		try {
-			File *f = gel::Manager::open(arg);
-
-			cout << "file name = " << f->path() << io::endl;
-			cout << "type = " << f->type() << io::endl;
-			cout << "entry = " << f->format(f->entry()) << io::endl;
-
-			// TODO for ELF
-			/*printf("type = %s (0x%04x)\n", get_type(infos.type), infos.type);
-			printf("machine = %s (0x%04x)\n", get_machine(infos.machine), infos.machine);
-			printf("version = %d\n", infos.version);
-			printf("entry = 0x%08x\n", infos.entry);
-			printf("identification\n");
-			display_block(infos.ident, sizeof(infos.ident), 4);
-			printf("ident[EI_CLASS] = %s (%d)\n", get_class(infos.ident[EI_CLASS]), infos.ident[EI_CLASS]);
-			printf("ident[EI_DATA] = %s (%d)\n", get_data(infos.ident[EI_DATA]), infos.ident[EI_DATA]);
-			printf("ident[EI_OSABI] = %d\n", infos.ident[EI_OSABI]);*/
-
-			delete f;
-		}
-		catch(gel::Exception& e) {
-			cerr << "ERROR: " << e.message() << io::endl;
-		}
+		args.add(arg);
 	}
 
 
@@ -158,15 +187,15 @@ private:
 	}
 
 
-	void display_block(const char *bytes, int size, int width) {
+	void display_block(const t::uint8 *bytes, int size, int width) {
 		int i, j;
 		for(i = 0; i < size; i += width) {
 			for(j = 0; j < width && i + j < size; j++)
 				cout << io::hex(io::width(2, io::pad('0', bytes[i + j])));
 			cout << '\t';
 			for(j = 0; (j < width) && (i + j < size); j++) {
-				if(bytes[i + j] >= ' ' && bytes[i + j] < 128)
-					cout << bytes[i + j];
+				if(bytes[i + j] >= ' ' && bytes[i + j] < 127)
+					cout << static_cast<char>(bytes[i + j]);
 				else
 					cout << '.';
 			}
@@ -192,79 +221,12 @@ private:
 		}
 	}
 
-	SwitchOption all;
+	SwitchOption show_all, show_elf;
+	genstruct::Vector<string> args;
 };
 
 
 int main(int argc, char **argv) {
 	FileCommand cmd;
-	cmd.parse(argc, argv);
+	cmd.run(argc, argv);
 }
-
-#if 0
-/**
- * Get the machine name from its code (if known).
- * @param	machine		Machine type.
- *  @return				Matching name.
- */
-/**
- * Command entry point.
- */
-int main(int argc, char **argv) {
-	const char *path;
-	gel_file_t *file;
-	int opt;
-	uint32_t flags = 0;
-#	define	ALL		0xffffffff
-#	define	NAMED	0x80000000
-	gel_file_info_t infos;
-
-	/* Check arguments */
-	opterr = 1;
-	while((opt = getopt(argc, argv, "ha")) != EOF)
-		switch(opt) {
-		case 'a':
-			flags = ALL;
-			break;
-		case '?':
-		case 'h':
-			help();
-			break;
-		default:
-			assert(0);
-		}
-	if(optind >= argc)
-		help();
-	path = argv[optind];
-
-	/* open the file */
-	file = gel_open(path, "", 0);
-	if(file == NULL) {
-    	printf("ERROR: %s\n", gel_strerror());
-    	return 2;
-  	}
-
-	/* get GEL header */
-	if(gel_file_infos(file, &infos) == -1) {
-		fprintf(stderr, "ERROR: %s\n", gel_strerror());
-		return 2;
-	}
-
-	/* Display information */
-	printf("file name = %s\n", infos.filename);
-	printf("type = %s (0x%04x)\n", get_type(infos.type), infos.type);
-	printf("machine = %s (0x%04x)\n", get_machine(infos.machine), infos.machine);
-	printf("version = %d\n", infos.version);
-	printf("entry = 0x%08x\n", infos.entry);
-	printf("identification\n");
-	display_block(infos.ident, sizeof(infos.ident), 4);
-	printf("ident[EI_CLASS] = %s (%d)\n", get_class(infos.ident[EI_CLASS]), infos.ident[EI_CLASS]);
-	printf("ident[EI_DATA] = %s (%d)\n", get_data(infos.ident[EI_DATA]), infos.ident[EI_DATA]);
-	printf("ident[EI_OSABI] = %d\n", infos.ident[EI_OSABI]);
-
-
-	/* cleanup */
-	gel_close(file);
-	return 0;
-}
-#endif

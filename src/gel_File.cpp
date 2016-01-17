@@ -40,6 +40,15 @@ File::~File(void) {
 
 
 /**
+ * If the file is of type ELF, return handler on it.
+ * @return	ELF file handler or null.
+ */
+elf::File *File::toELF(void) {
+	return 0;
+}
+
+
+/**
  * @fn sys::Path File::path(void) const;
  * Get path of the file.
  * @return	File path.

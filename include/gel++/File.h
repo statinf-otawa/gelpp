@@ -27,6 +27,7 @@ namespace gel {
 
 using namespace elm;
 class Manager;
+namespace elf { class File; }
 
 class File {
 public:
@@ -41,6 +42,8 @@ public:
 
 	inline sys::Path path(void) const { return _path; }
 	inline io::IntFormat format(address_t a) { return gel::format(addressType(), a); }
+
+	virtual elf::File *toELF(void);
 
 	virtual type_t type(void) = 0;
 	virtual bool isBigEndian(void) = 0;
