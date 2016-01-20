@@ -24,8 +24,18 @@
 namespace gel { namespace elf {
 
 /**
+ * @defgroup elf ELF Loader
+ *
+ * This group includes all classes implementing the support for the ELF file format.
+ * It is based on the following documents:
+ * * Tool Interface Standard (TIS), Executable and Linking Format (ELF) Specification Version 1.2. TIS Committee. May 1995.
+ *
+ */
+
+/**
  * @class File
  * Class handling executable file in ELF format (32-bits).
+ * @ingroup elf
  */
 
 
@@ -33,6 +43,8 @@ void File::fix(t::uint16& i) 	{ i = ENDIAN2(h->e_ident[EI_DATA], i); }
 void File::fix(t::int16& i) 	{ i = ENDIAN2(h->e_ident[EI_DATA], i); }
 void File::fix(t::uint32& i)	{ i = ENDIAN4(h->e_ident[EI_DATA], i); }
 void File::fix(t::int32& i)		{ i = ENDIAN4(h->e_ident[EI_DATA], i); }
+void File::fix(t::uint64& i)	{ i = ENDIAN8(h->e_ident[EI_DATA], i); }
+void File::fix(t::int64& i)		{ i = ENDIAN8(h->e_ident[EI_DATA], i); }
 
 
 /**
@@ -46,9 +58,15 @@ File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) thr
 	s(stream),
 	h(new Elf32_Ehdr),
 	sec_buf(0),
-	str_tab(0)
+	str_tab(0),
+	ph_buf(0)
 {
-	read(h, sizeof(Elf32_Ehdr));
+	readAt(0, h, sizeof(Elf32_Ehdr));
+	if(h->e_ident[0] != ELFMAG0
+	|| h->e_ident[1] != ELFMAG1
+	|| h->e_ident[2] != ELFMAG2
+	|| h->e_ident[3] != ELFMAG3)
+		throw Exception("not an ELF file");
 	if(h->e_ident[EI_CLASS] != ELFCLASS32)
 		throw Exception("only 32-bits class supported");
 	fix(h->e_type);
@@ -72,6 +90,38 @@ File::~File(void) {
 	delete h;
 	if(sec_buf)
 		delete [] sec_buf;
+	if(ph_buf)
+		delete [] ph_buf;
+}
+
+/**
+ * Get the program headers.
+ * @return	Program headers.
+ * @throw gel::Exception	If there is a file read error.
+ */
+genstruct::Vector<ProgramHeader>& File::programHeaders(void) throw(gel::Exception) {
+	if(!ph_buf) {
+
+		// load it
+		ph_buf = new t::uint8[h->e_phentsize * h->e_phnum];
+		readAt(h->e_phoff, ph_buf, h->e_phentsize * h->e_phnum);
+
+		// build them
+		phs.setLength(h->e_phnum);
+		for(int i = 0; i < h->e_phnum; i++) {
+			Elf32_Phdr *ph = (Elf32_Phdr *)(ph_buf + i * h->e_phentsize);
+			fix(ph->p_align);
+			fix(ph->p_filesz);
+			fix(ph->p_flags);
+			fix(ph->p_memsz);
+			fix(ph->p_offset);
+			fix(ph->p_paddr);
+			fix(ph->p_type);
+			fix(ph->p_vaddr);
+			phs[i] = ProgramHeader(this, ph);
+		}
+	}
+	return phs;
 }
 
 /**
@@ -86,7 +136,9 @@ cstring File::stringAt(t::uint32 offset) throw(gel::Exception) {
 			throw gel::Exception(_ << "strtab index out of bound");
 		str_tab = &sections()[h->e_shstrndx];
 	}
-	return str_tab->content().string(offset);
+	cstring r;
+	str_tab->content().get(offset, r);
+	return r;
 }
 
 
@@ -198,12 +250,13 @@ genstruct::Vector<Section>& File::sections(void) throw(gel::Exception) {
 /**
  * @class Section
  * A section in an ELF file.
+ * @ingroup elf
  */
 
 /**
  * Empty builder.
  */
-Section::Section(void): _file(0), e(0), buf(0) {
+Section::Section(void): _file(0), _info(0), buf(0) {
 }
 
 /**
@@ -211,7 +264,7 @@ Section::Section(void): _file(0), e(0), buf(0) {
  * @param file	Parent file.
  * @param entry	Section entry.
  */
-Section::Section(elf::File *file, Elf32_Shdr *entry): _file(file), e(entry), buf(0) {
+Section::Section(elf::File *file, Elf32_Shdr *entry): _file(file), _info(entry), buf(0) {
 }
 
 Section::~Section(void) {
@@ -226,13 +279,10 @@ Section::~Section(void) {
  */
 Buffer Section::content(void) throw(gel::Exception) {
 	if(!buf) {
-		buf = new t::uint8[e->sh_size];
-		if(!e->sh_offset)
-			array::set(buf, e->sh_size, t::uint8(0));
-		else
-			_file->readAt(e->sh_offset, buf, e->sh_size);
+		buf = new t::uint8[_info->sh_size];
+		_file->readAt(_info->sh_offset, buf, _info->sh_size);
 	}
-	return Buffer(buf, e->sh_size);
+	return Buffer(_file, buf, _info->sh_size);
 }
 
 /**
@@ -241,7 +291,7 @@ Buffer Section::content(void) throw(gel::Exception) {
  * @throw gel::Exception	If there is an error during file read.
  */
 cstring Section::name(void) throw(gel::Exception) {
-	return _file->stringAt(e->sh_name);
+	return _file->stringAt(_info->sh_name);
 }
 
 /**
@@ -249,5 +299,131 @@ cstring Section::name(void) throw(gel::Exception) {
  * Get section information.
  */
 
+
+/**
+ * @class ProgramHeader;
+ * Represents an ELF program header, area of memory ready to be loaded
+ * into the program image.
+ * @ingroup elf
+ */
+
+/**
+ */
+ProgramHeader::ProgramHeader(void): _file(0), _info(0), _buf(0) {
+}
+
+/**
+ */
+ProgramHeader::ProgramHeader(File *file, Elf32_Phdr *info): _file(file), _info(info), _buf(0) {
+}
+
+/**
+ */
+ProgramHeader::~ProgramHeader(void) {
+	if(_buf)
+		delete [] _buf;
+}
+
+/**
+ * @fn const Elf32_Phdr& ProgramHeaderinfo(void) const;
+ * Get information on the program header.
+ * @return	Program header information.
+ */
+
+/**
+ * Get the content of the program header.
+ * @return	Program header contant.
+ * @throw gel::Exception	If there is an error at file read.
+ */
+Buffer ProgramHeader::content(void) throw(gel::Exception) {
+	if(!_buf) {
+		_buf = new t::uint8[_info->p_memsz];
+		if(_info->p_filesz)
+			_file->readAt(_info->p_offset, _buf, _info->p_filesz);
+		if(_info->p_filesz < _info->p_memsz)
+			array::set(_buf, _info->p_memsz - _info->p_filesz, t::uint8(0));
+	}
+	return Buffer(_file, _buf, _info->p_memsz);
+}
+
+/**
+ * @fn bool ProgramHeader::contains(address_t a) const;
+ * Test if the program contains the given address.
+ * @param a		Address to test.
+ * @return		True if the address is in the program header, false else.
+ */
+
+
+/**
+ * @class  NoteIter
+ * Iterator on the notes for a PT_NOTE program header.
+ * @ingroup elf
+ */
+
+/**
+ */
+NoteIter::NoteIter(ProgramHeader& ph) throw(Exception): c(ph.content()) {
+	ASSERT(ph.info().p_type == PT_NOTE);
+	next();
+}
+
+/**
+ * Read the next note.
+ */
+void NoteIter::next(void) throw(Exception) {
+
+	// end reached
+	if(c.ended()) {
+		_desc = 0;
+		return;
+	}
+
+	// read the note header
+	if(!c.avail(sizeof(Elf32_Word) * 3))
+		throw Exception("malformed note entry");
+	Elf32_Word namesz;
+	c.read(namesz);
+	c.read(_descsz);
+	c.read(_type);
+
+	// get name and descriptor
+	const t::uint8 *p;
+	if(!c.read(namesz, p))
+		throw Exception("malformed note entry");
+	_name = cstring((const char *)p);
+	if(!c.read(size_t(_descsz), p))
+		throw Exception("malformed note entry");
+	_desc = (Elf32_Word *)p;
+}
+
+/**
+ * @fn bool NoteIter::ended(void);
+ * Test if the note traversal is ended.
+ * @return	True if the traversal is ended, false else.
+ */
+
+/**
+ * @fn cstring NoteIter::name(void) const;
+ * Get note name.
+ * @return Note name.
+ */
+
+/**
+ * @fn Elf32_Word NoteIter::descsz(void) const;
+ * Get tdescription size.
+ * @return	Description size (in bytes).
+ */
+
+/**
+ * @fn const Elf32_Word *NoteIter::desc(void) const;
+ * Get description of the note.
+ * @return	Note description.
+ */
+
+/**
+ * @fn Elf32_Word NoteIter::type(void) const;
+ * Get the type of the note.
+ * @return	Note type.
+ */
 
 } }	// gel::file

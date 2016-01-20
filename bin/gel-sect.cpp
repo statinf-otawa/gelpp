@@ -1,5 +1,5 @@
 /*
- * gel::elf::File class
+ * gel-sect command
  * Copyright (c) 2016, IRIT- université de Toulouse
  *
  * GEL++ is free software; you can redistribute it and/or modify

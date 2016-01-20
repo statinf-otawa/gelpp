@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <elm/compare.h>
 #include <elm/sys/System.h>
 #include <gel++.h>
 #include <gel++/elf/defs.h>
@@ -106,6 +107,49 @@ io::IntFormat format(address_type_t t, address_t a) {
 
 
 /**
+ * @class Decoder
+ * Decoders are used to convert data find in executable files,
+ * like integers, into data from the native environment.
+ * Typically, they support  endianness conversions.
+ */
+
+/**
+ */
+Decoder::~Decoder(void) {
+}
+
+/**
+ * @fn void Decoder::fix(t::uint16& w);
+ * Called to convert w from executable endianness to native endianness.
+ */
+
+/**
+ * @fn void Decoder::fix(t::int16& w);
+ * Called to convert w from executable endianness to native endianness.
+ */
+
+/**
+ * @fn void Decoder::fix(t::uint32& w);
+ * Called to convert w from executable endianness to native endianness.
+ */
+
+/**
+ * @fn void Decoder::fix(t::int32& w);
+ * Called to convert w from executable endianness to native endianness.
+ */
+
+/**
+ * @fn void Decoder::fix(t::uint64& w);
+ * Called to convert w from executable endianness to native endianness.
+ */
+
+/**
+ * @fn void Decoder::fix(t::int64& w);
+ * Called to convert w from executable endianness to native endianness.
+ */
+
+
+/**
  * @class Buffer
  * Class representing a content of an executable file. It provides
  * facilities to access data in the buffer and prevent out-of-buffer
@@ -116,5 +160,76 @@ io::IntFormat format(address_type_t t, address_t a) {
  * Null buffer.
  */
 Buffer Buffer::null;
+
+/**
+ */
+io::Output& operator<<(io::Output& out, const Buffer& buf) {
+	for(int i = 0; i < buf.size(); i += 8) {
+		for(int j = 0; j < 8; j++) {
+			if(i + j < buf.size()) {
+				t::uint8 b;
+				buf.get(i + j, b);
+				out << io::fmt(b).hex().width(2).pad('0');
+			}
+			else
+				out << "  ";
+		}
+		out << ' ';
+		for(int j = 0; j < 8; j++) {
+			if(i + j < buf.size() ) {
+				t::uint8 c;
+				buf.get(i + j, c);
+				if(c >= ' ' && c < 127)
+					out << char(c);
+				else
+					out << '.';
+			}
+			else
+				out << ' ';
+		}
+		out << io::endl;
+	}
+	return out;
+}
+
+
+/**
+ * A cursor allows reading a buffer like an output stream.
+ */
+
+/**
+ * Read a C string and return it. Skip characters
+ * until the final null character.
+ * @param s	C string resulting of the read.
+ * @return	True for success (null-ended string), false else.
+ */
+bool Cursor::read(cstring& s) {
+	if(!avail(sizeof(t::uint8)))
+		return false;
+	buf.get(off, s);
+	while(avail(sizeof(t::uint8))) {
+		t::uint8 b;
+		buf.get(off, b);
+		off++;
+		if(b == '\0')
+			return true;
+	}
+	return false;
+}
+
+
+/**
+ * Read a memory block and skip corresponding bytes.
+ * @param size	Block size.
+ * @param buf	Pointer of first byte.
+ * @return		True for success (enough bytes in the buffer), false else.
+ */
+bool Cursor::read(size_t size, const t::uint8 *& buf) {
+	if(!avail(size))
+		return false;
+	buf = this->buf.at(off);
+	off += size;
+	return true;
+}
 
 } // gel

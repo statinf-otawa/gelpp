@@ -27,22 +27,43 @@
 
 namespace gel { namespace elf {
 
+class ProgramHeader {
+public:
+	ProgramHeader(void);
+	ProgramHeader(File *file, Elf32_Phdr *info);
+	~ProgramHeader(void);
+
+	inline const Elf32_Phdr& info(void) const { return *_info; }
+	Buffer content(void) throw(gel::Exception);
+	inline bool contains(address_t a) const { return _info->p_vaddr <= a && a < _info->p_vaddr + _info->p_memsz; }
+	inline Decoder *decoder(void) const;
+
+private:
+	elf::File *_file;
+	Elf32_Phdr *_info;
+	t::uint8 *_buf;
+};
+
 class Section {
 public:
 	Section(void);
 	Section(elf::File *file, Elf32_Shdr *entry);
 	~Section(void);
 	cstring name(void) throw(gel::Exception);
-	const Elf32_Shdr& info(void) { return *e; }
+	const Elf32_Shdr& info(void) { return *_info; }
 	Buffer content(void) throw(gel::Exception);
+	inline bool contains(address_t a) const
+		{ return (_info->sh_flags & SHF_ALLOC) && _info->sh_addr <= a && a < _info->sh_addr + _info->sh_size; }
+
 private:
 	elf::File *_file;
-	Elf32_Shdr *e;
+	Elf32_Shdr *_info;
 	t::uint8 *buf;
 };
 
 
-class File: public gel::File {
+class File: public gel::File, private Decoder {
+	friend class ProgramHeader;
 	friend class Section;
 public:
 	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception);
@@ -57,23 +78,54 @@ public:
 	const Elf32_Ehdr& info(void) const { return *h; }
 	typedef genstruct::Vector<Section>::Iterator SecIter;
 	genstruct::Vector<Section>& sections(void) throw(gel::Exception);
+	typedef genstruct::Vector<ProgramHeader>::Iterator ProgIter;
+	genstruct::Vector<ProgramHeader>& programHeaders(void) throw(gel::Exception);
 
 	cstring stringAt(t::uint32 offset) throw(gel::Exception);
 
 private:
 	void read(void *buf, t::uint32 size) throw(Exception);
 	void readAt(t::uint32 pos, void *buf, t::uint32 size) throw(Exception);
-	void fix(t::uint16& i);
-	void fix(t::int16& i);
-	void fix(t::uint32& i);
-	void fix(t::int32& i);
+
+	virtual void fix(t::uint16& i);
+	virtual void fix(t::int16& i);
+	virtual void fix(t::uint32& i);
+	virtual void fix(t::int32& i);
+	virtual void fix(t::uint64& i);
+	virtual void fix(t::int64& i);
 
 	Elf32_Ehdr *h;
 	io::RandomAccessStream *s;
 	t::uint8 *sec_buf;
 	Section *str_tab;
 	genstruct::Vector<Section> sects;
+	t::uint8 *ph_buf;
+	genstruct::Vector<ProgramHeader> phs;
 };
+
+class NoteIter {
+public:
+	NoteIter(ProgramHeader& ph) throw(Exception);
+	inline bool ended(void) const { return !_desc; }
+	void next(void) throw(Exception);
+	inline operator bool(void) const { return !ended(); }
+	inline NoteIter& operator++(void) { next(); return *this; }
+	inline NoteIter& operator++(int) { next(); return *this; }
+
+	inline cstring name(void) const { return _name; }
+	inline Elf32_Word descsz(void) const { return _descsz; }
+	inline const Elf32_Word *desc(void) const { return _desc; }
+	inline Elf32_Word type(void) const { return _type; }
+
+private:
+	Cursor c;
+	cstring _name;
+	Elf32_Word _descsz;
+	const Elf32_Word *_desc;
+	Elf32_Word _type;
+};
+
+inline Decoder *ProgramHeader::decoder(void) const { return _file; }
 
 } }	// gel::elf
 

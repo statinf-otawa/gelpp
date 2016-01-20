@@ -240,13 +240,16 @@ typedef struct Elf32_Rela {
 // useful macros
 #define SWAP2(x) ((((x) & 0xFF) << 8) | (((x) & 0xFF00 ) >> 8))
 #define SWAP4(x) ((((SWAP2((x) & 0xFFFF))) << 16) | SWAP2(((x) & 0xFFFF0000) >> 16))
+#define SWAP8(x) (((SWAP4((x) & 0xFFFFFFFF)) << 32) | SWAP4(((x) >> 32) & 0xFFFFFFFF))
 
 #ifdef BIGENDIAN
 #define ENDIAN2(e,v) (((e) == ELFDATA2MSB) ? (v) : SWAP2(v))
 #define ENDIAN4(e,v) (((e) == ELFDATA2MSB) ? (v) : SWAP4(v))
+#define ENDIAN8(e,v) (((e) == ELFDATA2MSB) ? (v) : SWAP8(v))
 #else
 #define ENDIAN2(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP2(v))
 #define ENDIAN4(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP4(v))
+#define ENDIAN8(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP8(v))
 #endif
 
 } }		// gel::elf
