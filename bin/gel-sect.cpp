@@ -75,7 +75,7 @@ public:
 
 				// display sections
 				else {
-					cout << "INDEX TYPE         FLAGS VADDR    SIZE     OFFSET   NAME\n";
+					cout << "INDEX TYPE         FLAGS VADDR    SIZE     OFFSET   LINK  NAME\n";
 					for(int j = 0; j < ss.count(); j++)
 						display_section(j, ss[j]);
 				}
@@ -140,6 +140,7 @@ private:
 			 << word_fmt(s.sh_addr) << ' '
 			 << word_fmt(s.sh_size) << ' '
 			 << word_fmt(s.sh_offset) << ' '
+			 << io::fmt(s.sh_link).width(5).right() << ' '
 			 << sect.name() << io::endl;
 	}
 

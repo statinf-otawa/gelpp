@@ -59,7 +59,8 @@ File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) thr
 	h(new Elf32_Ehdr),
 	sec_buf(0),
 	str_tab(0),
-	ph_buf(0)
+	ph_buf(0),
+	syms(0)
 {
 	readAt(0, h, sizeof(Elf32_Ehdr));
 	if(h->e_ident[0] != ELFMAG0
@@ -88,10 +89,30 @@ File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) thr
 File::~File(void) {
 	delete s;
 	delete h;
+	if(syms)
+		delete syms;
 	if(sec_buf)
 		delete [] sec_buf;
 	if(ph_buf)
 		delete [] ph_buf;
+}
+
+/**
+ * Get the map of symbols of the file.
+ * @return	Map of symbols.
+ */
+const File::SymbolMap& File::symbols(void) throw(Exception) {
+	if(!syms) {
+		syms = new SymbolMap();
+		sections();
+		for(int i = 0; i < sects.count(); i++) {
+			Section& s = sects[i];
+			if(s.info().sh_type == SHT_SYMTAB || s.info().sh_type == SHT_DYNSYM)
+				for(SymbolIter sym(*this, s); sym; sym++)
+					syms->put(sym.name(), &*sym);
+		}
+	}
+	return *syms;
 }
 
 /**
@@ -135,6 +156,8 @@ cstring File::stringAt(t::uint32 offset) throw(gel::Exception) {
 		if(h->e_shstrndx >= sections().length())
 			throw gel::Exception(_ << "strtab index out of bound");
 		str_tab = &sections()[h->e_shstrndx];
+		cerr << "DEBUG: strtab = " << h->e_shstrndx << io::endl;
+		cerr << "DEBUG: size = " << str_tab->info().sh_size << io::endl;
 	}
 	cstring r;
 	str_tab->content().get(offset, r);
@@ -279,8 +302,25 @@ Section::~Section(void) {
  */
 Buffer Section::content(void) throw(gel::Exception) {
 	if(!buf) {
+
+		// read the data
 		buf = new t::uint8[_info->sh_size];
 		_file->readAt(_info->sh_offset, buf, _info->sh_size);
+
+		// fix endianness according to the section type
+		if(_info->sh_type == SHT_SYMTAB || _info->sh_type == SHT_DYNSYM) {
+			if((_info->sh_size / _info->sh_entsize) * _info->sh_entsize != _info->sh_size)
+				throw Exception(_ << "garbage found at end of symbol table " << name());
+			Cursor c(Buffer(_file, buf, _info->sh_size));
+			while(c.avail(_info->sh_entsize)) {
+				Elf32_Sym *s = (Elf32_Sym *)c.here();
+				c.decoder()->fix(s->st_name);
+				c.decoder()->fix(s->st_value);
+				c.decoder()->fix(s->st_size);
+				c.decoder()->fix(s->st_shndx);
+				c.skip(_info->sh_entsize);
+			}
+		}
 	}
 	return Buffer(_file, buf, _info->sh_size);
 }
@@ -425,5 +465,58 @@ void NoteIter::next(void) throw(Exception) {
  * Get the type of the note.
  * @return	Note type.
  */
+
+
+/**
+ * @class SymbolIter;
+ * Iterator on the symbols contained in a section. Given sections must be of type
+ * SHT_SYMTAB or SHT_DYNSYM.
+ */
+
+/**
+ */
+SymbolIter::SymbolIter(File& file, Section& section) throw(Exception): f(file), s(section), c(section.content()) {
+	ASSERT(section.info().sh_type == SHT_SYMTAB || section.info().sh_type == SHT_DYNSYM);
+}
+
+/**
+ * @fn bool SymbolIter::ended(void) const;
+ * Test if the iterator is ended.
+ */
+
+/**
+ * @fn const Elf32_Sym& SymbolIter::item(void) const;
+ * Get the current symbol.
+ */
+
+/**
+ * Move to next symbol.
+ */
+void SymbolIter::next(void) {
+	c.skip(sizeof(Elf32_Sym));
+}
+
+/**
+ * Get name of the symbol.
+ */
+cstring SymbolIter::name(void) throw(Exception) {
+	if(names.isNull()) {
+
+		// find string section number
+		int sn;
+		if(!s.info().sh_link)
+			sn = f.info().e_shstrndx;
+		else
+			sn = s.info().sh_link;
+
+		// get the section and the buffer
+		if(sn == 0 || sn >= f.sections().length())
+			throw Exception(_ << "bad number for symbol table string section in " << s.name());
+		names = f.sections()[sn].content();
+	}
+	cstring r;
+	names.get(item().st_name, r);
+	return r;
+}
 
 } }	// gel::file

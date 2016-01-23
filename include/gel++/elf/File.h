@@ -19,8 +19,9 @@
 #ifndef GELPP_ELF_FILE_H_
 #define GELPP_ELF_FILE_H_
 
-#include <elm/io/RandomAccessStream.h>
+#include <elm/genstruct/HashTable.h>
 #include <elm/genstruct/Vector.h>
+#include <elm/io/RandomAccessStream.h>
 #include "../Exception.h"
 #include "../File.h"
 #include "defs.h"
@@ -83,6 +84,9 @@ public:
 
 	cstring stringAt(t::uint32 offset) throw(gel::Exception);
 
+	typedef genstruct::HashTable<cstring, const Elf32_Sym *> SymbolMap;
+	const SymbolMap& symbols(void) throw(Exception);
+
 private:
 	void read(void *buf, t::uint32 size) throw(Exception);
 	void readAt(t::uint32 pos, void *buf, t::uint32 size) throw(Exception);
@@ -101,6 +105,7 @@ private:
 	genstruct::Vector<Section> sects;
 	t::uint8 *ph_buf;
 	genstruct::Vector<ProgramHeader> phs;
+	SymbolMap *syms;
 };
 
 class NoteIter {
@@ -126,6 +131,21 @@ private:
 };
 
 inline Decoder *ProgramHeader::decoder(void) const { return _file; }
+
+class SymbolIter: public PreIterator<SymbolIter, const Elf32_Sym& > {
+public:
+	SymbolIter(File& file, Section& section) throw(Exception);
+	inline bool ended(void) const { return c.ended(); }
+	inline const Elf32_Sym& item(void) const { return *(const Elf32_Sym *)c.here(); }
+	void next(void);
+	cstring name(void) throw(Exception);
+
+private:
+	File& f;
+	Section& s;
+	Cursor c;
+	Buffer names;
+};
 
 } }	// gel::elf
 

@@ -51,40 +51,41 @@ public:
 
 class Buffer {
 public:
-	inline Buffer(void): d(0), b(0), s(0) { }
+	inline Buffer(void): d(0), b(0), sz(0) { }
 	inline Buffer(Decoder *decoder, const t::uint8 *buffer, size_t size)
-		: d(decoder), b(buffer), s(size) { }
+		: d(decoder), b(buffer), sz(size) { }
 	inline Buffer(Decoder *decoder, const void *buffer, size_t size)
-		: d(decoder), b((t::uint8 *)buffer), s(size) { }
+		: d(decoder), b((t::uint8 *)buffer), sz(size) { }
 
 	inline const t::uint8 *buffer(void) const { return b; }
-	inline size_t size(void) const { return s; }
+	inline size_t size(void) const { return sz; }
 	static Buffer null;
 	inline bool isNull(void) const { return !b; }
-	inline bool equals(const Buffer& buf) const { return b == buf.b && s == buf.s; }
+	inline bool equals(const Buffer& buf) const { return b == buf.b && sz == buf.sz; }
+	inline Decoder *decoder(void) const { return d; }
 
 	inline const t::uint8 *at(offset_t offset) const
-		{ ASSERT(offset < s); return b + offset; }
+		{ ASSERT(offset < sz); return b + offset; }
 	inline void get(offset_t off, t::uint8& r) const
-		{ ASSERT(off + sizeof(t::uint8) <= s); r = *(t::uint8 *)(b + off); }
+		{ ASSERT(off + sizeof(t::uint8) <= sz); r = *(t::uint8 *)(b + off); }
 	inline void get(offset_t off, t::int8& r) const
-		{ ASSERT(off + sizeof(t::int8) <= s); r = *(t::int8 *)(b + off); }
+		{ ASSERT(off + sizeof(t::int8) <= sz); r = *(t::int8 *)(b + off); }
 	inline void get(offset_t off, t::uint16& r) const
-		{ ASSERT(off + sizeof(t::uint16) <= s); d->fix(r = *(t::uint16 *)(b + off)); }
+		{ ASSERT(off + sizeof(t::uint16) <= sz); d->fix(r = *(t::uint16 *)(b + off)); }
 	inline void get(offset_t off, t::int16& r) const
-		{ ASSERT(off + sizeof(t::int16) <= s); d->fix(r = *(t::int16 *)(b + off)); }
+		{ ASSERT(off + sizeof(t::int16) <= sz); d->fix(r = *(t::int16 *)(b + off)); }
 	inline void get(offset_t off, t::uint32& r) const
-		{ ASSERT(off + sizeof(t::uint32) <= s); d->fix(r = *(t::uint32 *)(b + off)); }
+		{ ASSERT(off + sizeof(t::uint32) <= sz); d->fix(r = *(t::uint32 *)(b + off)); }
 	inline void get(offset_t off, t::int32& r) const
-		{ ASSERT(off + sizeof(t::int32) <= s); d->fix(r = *(t::int32 *)(b + off)); }
+		{ ASSERT(off + sizeof(t::int32) <= sz); d->fix(r = *(t::int32 *)(b + off)); }
 	inline void get(offset_t off, t::uint64& r) const
-		{ ASSERT(off + sizeof(t::uint64) <= s); d->fix(r = *(t::uint64 *)(b + off)); }
+		{ ASSERT(off + sizeof(t::uint64) <= sz); d->fix(r = *(t::uint64 *)(b + off)); }
 	inline void get(offset_t off, t::int64& r) const
-		{ ASSERT(off + sizeof(t::int64) <= s); d->fix(r = *(t::int64 *)(b + off)); }
+		{ ASSERT(off + sizeof(t::int64) <= sz); d->fix(r = *(t::int64 *)(b + off)); }
 	inline void get(offset_t off, cstring& s)
-		{ ASSERT(off < s); s = cstring((const char *)(b + off)); }
+		{ ASSERT(off < sz); s = cstring((const char *)(b + off)); }
 	inline void get(offset_t off, string& s)
-		{ ASSERT(off < s); s = string((const char *)(b + off)); }
+		{ ASSERT(off < sz); s = string((const char *)(b + off)); }
 
 	inline operator bool(void) const { return !isNull(); }
 	inline bool operator==(const Buffer& b) const { return equals(b); }
@@ -93,7 +94,7 @@ public:
 private:
 	Decoder *d;
 	const t::uint8 *b;
-	size_t s;
+	size_t sz;
 };
 io::Output& operator<<(io::Output& out, const Buffer& buf);
 
@@ -101,10 +102,14 @@ class Cursor {
 public:
 	inline Cursor(void): off(0) { }
 	inline Cursor(const Buffer& b): buf(b), off(0) { }
+	inline Decoder *decoder(void) const { return buf.decoder(); }
 
 	inline bool ended(void) const { return off >= buf.size(); }
 	inline operator bool(void) const { return !ended(); }
 	inline bool avail(size_t s) { return off + s <= buf.size(); }
+	inline const t::uint8 *here(void) const { return buf.at(off); }
+
+	inline bool skip(size_t s) { if(!avail(s)) return false; off += s; return true; }
 
 	inline bool read(t::uint8& v)
 		{ if(!avail(sizeof(t::uint8))) return false; buf.get(off, v); off += sizeof(t::uint8); return true; }
