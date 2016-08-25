@@ -12,6 +12,7 @@ else(NOT WIN32)
 	set(LIBDIR "bin")
 endif(NOT WIN32)
 set(ORIGIN $ORIGIN)
+set(BINDIR "bin")
 
 # check endianness
 include(TestBigEndian)

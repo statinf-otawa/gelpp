@@ -33,7 +33,8 @@ public:
 		option::Manager(option::Manager::Make("gel-prog", Version(2, 0, 0))
 			.description("Display program header of an ELF exceutable.")
 			.copyright("Copyright (c) 2016, université de Toulouse")
-			.free_argument("<file path>")),
+			.free_argument("<file path>")
+			.help()),
 		note(SwitchOption::Make(*this).cmd("-n").description("display the content of the PT_NOTE segments"))
 	{ }
 

@@ -33,7 +33,8 @@ public:
 		option::Manager(option::Manager::Make("gel-sym", Version(2, 0, 0))
 			.description("Display symbols of an ELF exceutable.")
 			.copyright("Copyright (c) 2016, université de Toulouse")
-			.free_argument("<file path>"))
+			.free_argument("<file path>")
+			.help())
 	{ }
 
 	int run(int argc, char **argv) {

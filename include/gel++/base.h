@@ -29,6 +29,26 @@ typedef t::uint64 address_t;
 typedef t::uint64 size_t;
 typedef t::uint64 offset_t;
 
+typedef struct range_t {
+	inline range_t(address_t a): _addr(a), _size(1) { }
+	inline range_t(address_t a, size_t s): _addr(a), _size(s) { }
+
+	inline address_t base(void) const { return _addr; }
+	inline size_t size(void) const { return _size; }
+	inline address_t top(void) const { return _addr + _size; }
+	inline address_t last(void) const { return top() - 1; }
+	inline bool contains(address_t a) const { return _addr <= a && a <= last(); }
+	inline bool operator&(address_t a) const { return contains(a); }
+
+	inline range_t operator+(offset_t off) const { return range_t(_addr + off, _size); }
+	inline range_t operator-(offset_t off) const { return range_t(_addr - off, _size); }
+	inline range_t operator+(int off) const { return range_t(_addr + off, _size); }
+	inline range_t operator-(int off) const { return range_t(_addr - off, _size); }
+
+	address_t _addr;
+	size_t _size;
+} range_t;
+
 typedef enum {
 	address_8,
 	address_16,
@@ -37,6 +57,8 @@ typedef enum {
 } address_type_t;
 
 io::IntFormat format(address_type_t t, address_t a);
+inline io::Output& operator<<(io::Output& out, const range_t& r)
+	{ out << format(address_64, r.base()) << ':' << format(address_64, r.size()); return out; }
 
 class Decoder {
 public:

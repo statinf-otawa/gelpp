@@ -35,7 +35,8 @@ public:
 		Manager(Manager::Make("gel-sect", Version(2, 0, 0))
 			.description("list sections of an executable")
 			.copyright("copyright (c) 2016, université de Toulouse")
-			.free_argument("<file path>")),
+			.free_argument("<file path>")
+			.help()),
 		find(Value<address_t>::Make(*this).cmd("-f").description("find the section containing this address").argDescription("ADDRESS").def(0))
 	{ }
 

@@ -33,7 +33,8 @@ public:
 	:	Manager(Manager::Make("gel-file", Version(2, 0))
 			.copyright("Copyright (c) 2016	, université de Toulouse")
 			.description("Provide basic information about a binary file")
-			.free_argument("BINARY_FILE")),
+			.free_argument("BINARY_FILE")
+			.help()),
 		show_all(SwitchOption::Make(*this).cmd("-a").description("display all information")),
 		show_elf(SwitchOption::Make(*this).cmd("-e").description("display ELF information (if any)"))
 	{

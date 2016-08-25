@@ -40,6 +40,15 @@ File::~File(void) {
 
 
 /**
+ * @fn ImageBuilder *File::builder(void);
+ * Return an ImageBuilder object adapted for building the image with
+ * the current file as program. The caller is in charge of releasing
+ * the returned object.
+ * @return	Adapted image builder.
+ */
+
+
+/**
  * If the file is of type ELF, return handler on it.
  * @return	ELF file handler or null.
  */
@@ -86,6 +95,26 @@ elf::File *File::toELF(void) {
  * @fn address_t File::entry(void);
  * Get the address of the entry of the program.
  * @return	Program entry address (only valid for program files).
+ */
+
+
+/**
+ * @fn Image *File::make(DynamicLinker *linker = 0) throw(Exception);
+ * Build an image considering the current file as the main program.
+ * @param linker	(Optional) Dynamic linker to use.
+ */
+
+
+/**
+ * @fn void File::relocate(Image *image) throw(Exception);
+ * This function is called by the dynamic linker to let a file
+ * involved in an image building to apply relocation to its own
+ * segments (depending closely on the type of the file).
+ *
+ * When this call is performed, the file is ensured that its
+ * segments has been mapped in the image.
+ *
+ * @param image		Currently built image.
  */
 
 

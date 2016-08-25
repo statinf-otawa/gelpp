@@ -75,6 +75,8 @@ public:
 	virtual bool isBigEndian(void);
 	virtual address_type_t addressType(void);
 	virtual address_t entry(void);
+	virtual Image *make(DynamicLinker *linker = 0) throw(Exception);
+	virtual void relocate(Image *image) throw(Exception);
 
 	const Elf32_Ehdr& info(void) const { return *h; }
 	typedef genstruct::Vector<Section>::Iterator SecIter;

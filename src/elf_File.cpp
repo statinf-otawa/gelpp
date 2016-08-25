@@ -233,6 +233,20 @@ address_t File::entry(void) {
 
 
 /**
+ */
+Image *File::make(DynamicLinker *linker) throw(Exception) {
+	throw Exception("File::make() not implemented!");
+}
+
+
+/**
+ */
+void File::relocate(Image *image) throw(Exception) {
+	throw Exception("File::relocate() not implemented!");
+}
+
+
+/**
  * Get the sections of the file.
  * @return	File sections.
  * @throw gel::Exception 	If there is an error when file is read.
