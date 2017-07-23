@@ -22,6 +22,75 @@
 namespace gel {
 
 /**
+ * @class Segment
+ * A segment represents a unit of the execution image.
+ */
+
+/**
+ */
+Segment::~Segment(void) {
+}
+
+/**
+ * @fn cstring Segment::name(void);
+ * Get the name of the segment.
+ * @return	Segment name.
+ */
+
+/**
+ * @fn address_t Segment::baseAddress(void);
+ * Get the running-time address of the segment, i.e. the address
+ * where the segment will mapped as soon as the program is run.
+ * @return	Running-time address.
+ */
+
+/**
+ * @fn address_t Segment::loadAddress(void);
+ * Get the address where the segment is loaded before the program
+ * is launched. It may be different from baseAddress() if the segment
+ * aimed to be load in ROM and then copied in RAM before use.
+ * @return	Load-time address.
+ */
+
+/**
+ * @fn size_t Segment::size(void);
+ * Get the size of the segment.
+ * @return Segment size (in bytes).
+ */
+
+/**
+ * @fn size_t Segment::alignment(void);
+ * Get the alignment constraint for allocation the segment.
+ * The returned value must be a power of 2 and the segment will
+ * be installedat address multiple of the alignment.
+ * @return	Required alignment.
+ */
+
+/**
+ * @fn bool Segment::isExecutable(void);
+ * Test if the segment contains executable code.
+ * @return	True if it contains code, false else.
+ */
+
+/**
+ * @fn bool Segment::isWritable(void);
+ * Test if the segment contains writable data.
+ * @return	True if it contains writable data, false else.
+ */
+
+/**
+ * @fn bool Segment::hasContent(void);
+ * Test if the segment corresponds to data in the file.
+ * @return	True if the segments has data in the file, false else.
+ */
+
+/**
+ * @fn const Buffer& Segment::buffer(void);
+ * Get a buffer on the content of the segment.
+ */
+
+
+/**
  * @class File
  * Interface of the files opened by GEL++.
  */
@@ -37,15 +106,6 @@ File::File(Manager& manager, sys::Path path): man(manager), _path(path) {
  */
 File::~File(void) {
 }
-
-
-/**
- * @fn ImageBuilder *File::builder(void);
- * Return an ImageBuilder object adapted for building the image with
- * the current file as program. The caller is in charge of releasing
- * the returned object.
- * @return	Adapted image builder.
- */
 
 
 /**
@@ -102,6 +162,13 @@ elf::File *File::toELF(void) {
  * @fn Image *File::make(DynamicLinker *linker = 0) throw(Exception);
  * Build an image considering the current file as the main program.
  * @param linker	(Optional) Dynamic linker to use.
+ */
+
+
+/**
+ * @fn Table<Segment *> File::segments(void);
+ * Get the list of segments composing the file.
+ * @return	List of segments.
  */
 
 

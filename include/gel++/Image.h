@@ -19,31 +19,32 @@
 #ifndef GELPP_IMAGE_H_
 #define GELPP_IMAGE_H_
 
-#include <elm/genstruct/DLList.h>
+#include <elm/data/BiDiList.h>
 #include <gel++/base.h>
-#include <gel++/Exception.h>
+#include <gel++/File.h>
 
 namespace gel {
 
 using namespace elm;
+class Image;
 
 class ImageSegment {
 public:
-	ImageSegment(File *file, address_t addr, Buffer buf);
-	ImageSegment(File *file, address_t addr, Segment *segment);
+	ImageSegment(Buffer buf, address_t addr);
+	ImageSegment(File *file, Segment *segment, address_t addr);
 	inline File *file(void) const { return _file; }
 	inline Segment *segment(void) const { return _seg; }
 	inline address_t base(void) const { return _base; }
 	inline size_t size(void) const { return _buf.size(); }
-	inline Buffer& buffer(void) { return _buf; }
+	inline const Buffer& buffer(void) const { return _buf; }
 
 private:
 	File *_file;
 	Segment *_seg;
 	address_t _base;
 	Buffer _buf;
-};
 
+};
 
 class DynamicLinker {
 public:
@@ -58,11 +59,11 @@ public:
 
 	inline File *program(void) const { return prog; }
 
-	typedef genstruct::DLList<File *>::Iterator file_iter;
-	inline file_iter files(void) const { return file_iter(_files); }
+	typedef BiDiList<File *>::Iter FileIter;
+	inline FileIter files(void) const { return FileIter(_files); }
 
-	typedef genstruct::DLList<ImageSegment *>::Iterator seg_iter;
-	inline seg_iter segments(void) const { return seg_iter(segs); }
+	typedef BiDiList<ImageSegment *>::Iter SegIter;
+	inline SegIter segments(void) const { return SegIter(segs); }
 
 	void add(ImageSegment *segment);
 	ImageSegment *at(address_t address);
@@ -70,8 +71,8 @@ public:
 private:
 	Image(File *program);
 	File *prog;
-	genstruct::DLList<File *> _files;
-	genstruct::DLList<ImageSegment *> segs;
+	BiDiList<File *> _files;
+	BiDiList<ImageSegment *> segs;
 };
 
 } // gel

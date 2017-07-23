@@ -137,7 +137,7 @@ private:
 		}
 	}
 
-	genstruct::Vector<string> args;
+	Vector<string> args;
 };
 
 int main(int argc, char **argv) {

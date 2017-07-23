@@ -55,7 +55,7 @@ public:
 			for(int i = 0; i < args.count(); i++) {
 
 				elf::File *f = gel::Manager::openELF(args[i]);
-				genstruct::Vector<elf::Section>& ss = f->sections();
+				Vector<elf::Section>& ss = f->sections();
 
 				// find option
 				if(find) {
@@ -145,7 +145,7 @@ private:
 			 << sect.name() << io::endl;
 	}
 
-	genstruct::Vector<string> args;
+	Vector<string> args;
 	Value<address_t> find;
 };
 

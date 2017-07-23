@@ -19,8 +19,8 @@
 #ifndef GELPP_ELF_FILE_H_
 #define GELPP_ELF_FILE_H_
 
-#include <elm/genstruct/HashTable.h>
-#include <elm/genstruct/Vector.h>
+#include <elm/data/HashMap.h>
+#include <elm/data/Vector.h>
 #include <elm/io/RandomAccessStream.h>
 #include "../Exception.h"
 #include "../File.h"
@@ -45,7 +45,7 @@ private:
 	t::uint8 *_buf;
 };
 
-class Section {
+class Section: public Segment {
 public:
 	Section(void);
 	Section(elf::File *file, Elf32_Shdr *entry);
@@ -55,6 +55,16 @@ public:
 	Buffer content(void) throw(gel::Exception);
 	inline bool contains(address_t a) const
 		{ return (_info->sh_flags & SHF_ALLOC) && _info->sh_addr <= a && a < _info->sh_addr + _info->sh_size; }
+
+	// Segment overload
+	virtual address_t baseAddress(void);
+	virtual address_t loadAddress(void);
+	virtual size_t size(void);
+	virtual size_t alignment(void);
+	virtual bool isExecutable(void);
+	virtual bool isWritable(void);
+	virtual bool hasContent(void);
+	virtual Buffer buffer(void) throw(gel::Exception);
 
 private:
 	elf::File *_file;
@@ -70,6 +80,18 @@ public:
 	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception);
 	virtual ~File(void);
 
+	const Elf32_Ehdr& info(void) const { return *h; }
+	typedef Vector<Section>::Iter SecIter;
+	Vector<Section>& sections(void) throw(gel::Exception);
+	typedef Vector<ProgramHeader>::Iter ProgIter;
+	Vector<ProgramHeader>& programHeaders(void) throw(gel::Exception);
+
+	cstring stringAt(t::uint32 offset) throw(gel::Exception);
+
+	typedef HashMap<cstring, const Elf32_Sym *> SymbolMap;
+	const SymbolMap& symbols(void) throw(Exception);
+
+	// gel::File overload
 	virtual File *toELF(void);
 	virtual type_t type(void);
 	virtual bool isBigEndian(void);
@@ -77,17 +99,7 @@ public:
 	virtual address_t entry(void);
 	virtual Image *make(DynamicLinker *linker = 0) throw(Exception);
 	virtual void relocate(Image *image) throw(Exception);
-
-	const Elf32_Ehdr& info(void) const { return *h; }
-	typedef genstruct::Vector<Section>::Iterator SecIter;
-	genstruct::Vector<Section>& sections(void) throw(gel::Exception);
-	typedef genstruct::Vector<ProgramHeader>::Iterator ProgIter;
-	genstruct::Vector<ProgramHeader>& programHeaders(void) throw(gel::Exception);
-
-	cstring stringAt(t::uint32 offset) throw(gel::Exception);
-
-	typedef genstruct::HashTable<cstring, const Elf32_Sym *> SymbolMap;
-	const SymbolMap& symbols(void) throw(Exception);
+	virtual Array<Segment *> segments(void);
 
 private:
 	void read(void *buf, t::uint32 size) throw(Exception);
@@ -104,9 +116,9 @@ private:
 	io::RandomAccessStream *s;
 	t::uint8 *sec_buf;
 	Section *str_tab;
-	genstruct::Vector<Section> sects;
+	Vector<Section> sects;
 	t::uint8 *ph_buf;
-	genstruct::Vector<ProgramHeader> phs;
+	Vector<ProgramHeader> phs;
 	SymbolMap *syms;
 };
 

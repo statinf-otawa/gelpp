@@ -20,6 +20,7 @@
 #ifndef GELPP_FILE_H_
 #define GELPP_FILE_H_
 
+#include <elm/data/Array.h>
 #include <elm/sys/Path.h>
 #include <gel++/base.h>
 
@@ -34,13 +35,15 @@ namespace elf { class File; }
 class Segment {
 public:
 	virtual ~Segment(void);
-	virtual cstring name(void) = 0;
+	virtual cstring name(void) throw(Exception) = 0;
 	virtual address_t baseAddress(void) = 0;
 	virtual address_t loadAddress(void) = 0;
 	virtual size_t size(void) = 0;
 	virtual size_t alignment(void) = 0;
 	virtual bool isExecutable(void) = 0;
 	virtual bool isWritable(void) = 0;
+	virtual bool hasContent(void) = 0;
+	virtual Buffer buffer(void) throw(Exception) = 0;
 };
 
 class File {
@@ -63,6 +66,8 @@ public:
 	virtual bool isBigEndian(void) = 0;
 	virtual address_type_t addressType(void) = 0;
 	virtual address_t entry(void) = 0;
+	virtual Array<Segment *> segments(void) = 0;
+
 	virtual Image *make(DynamicLinker *linker = 0) throw(Exception) = 0;
 	virtual void relocate(Image *image) throw(Exception) = 0;
 

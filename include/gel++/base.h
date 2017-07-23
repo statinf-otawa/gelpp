@@ -74,7 +74,7 @@ public:
 class Buffer {
 public:
 	inline Buffer(void): d(0), b(0), sz(0) { }
-	inline Buffer(Decoder *decoder, const t::uint8 *buffer, size_t size)
+	inline Buffer(Decoder *decoder, t::uint8 *buffer, size_t size)
 		: d(decoder), b(buffer), sz(size) { }
 	inline Buffer(Decoder *decoder, const void *buffer, size_t size)
 		: d(decoder), b((t::uint8 *)buffer), sz(size) { }

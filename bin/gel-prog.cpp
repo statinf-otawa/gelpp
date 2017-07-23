@@ -68,7 +68,7 @@ public:
 							"p_flags\n";
 
 				// display program headers
-				genstruct::Vector<elf::ProgramHeader> phs = f->programHeaders();
+				Vector<elf::ProgramHeader> phs = f->programHeaders();
 				for(int j = 0; j < phs.count(); j++) {
 					const elf::Elf32_Phdr &ph = phs[j].info();
 
@@ -168,7 +168,7 @@ private:
 		}
 	}
 
-	genstruct::Vector<string> args;
+	Vector<string> args;
 	SwitchOption note;
 };
 

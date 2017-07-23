@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <elm/util/array.h>
+#include <elm/array.h>
 #include <gel++/elf/defs.h>
 #include <gel++/elf/File.h>
 
@@ -120,7 +120,7 @@ const File::SymbolMap& File::symbols(void) throw(Exception) {
  * @return	Program headers.
  * @throw gel::Exception	If there is a file read error.
  */
-genstruct::Vector<ProgramHeader>& File::programHeaders(void) throw(gel::Exception) {
+Vector<ProgramHeader>& File::programHeaders(void) throw(gel::Exception) {
 	if(!ph_buf) {
 
 		// load it
@@ -247,11 +247,16 @@ void File::relocate(Image *image) throw(Exception) {
 
 
 /**
+ */
+Array<Segment *> File::segments(void) {
+}
+
+/**
  * Get the sections of the file.
  * @return	File sections.
  * @throw gel::Exception 	If there is an error when file is read.
  */
-genstruct::Vector<Section>& File::sections(void) throw(gel::Exception) {
+Vector<Section>& File::sections(void) throw(gel::Exception) {
 	if(!sec_buf) {
 
 		// allocate memory
@@ -352,6 +357,54 @@ cstring Section::name(void) throw(gel::Exception) {
  * @fn const Elf32_Shdr& Section::info(void);
  * Get section information.
  */
+
+/**
+ */
+address_t Section::baseAddress(void) {
+	return _info->sh_addr;
+}
+
+/**
+ */
+address_t Section::loadAddress(void) {
+	return _info->sh_addr;
+}
+
+/**
+ */
+size_t Section::size(void) {
+	return _info->sh_size;
+}
+
+/**
+ */
+size_t Section::alignment(void) {
+	return _info->sh_addralign;
+}
+
+/**
+ */
+bool Section::isExecutable(void) {
+	return _info->sh_flags & SHF_EXECINSTR;
+}
+
+/**
+ */
+bool Section::isWritable(void) {
+	return _info->sh_flags & SHF_WRITE;
+}
+
+/**
+ */
+bool Section::hasContent(void) {
+	return _info->sh_type == SHT_PROGBITS;
+}
+
+/**
+ */
+Buffer Section::buffer(void) throw(Exception)  {
+	return content();
+}
 
 
 /**

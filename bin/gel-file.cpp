@@ -224,7 +224,7 @@ private:
 	}
 
 	SwitchOption show_all, show_elf;
-	genstruct::Vector<string> args;
+	Vector<string> args;
 };
 
 
