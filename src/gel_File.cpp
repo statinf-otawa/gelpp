@@ -18,6 +18,7 @@
  */
 
 #include <gel++/File.h>
+#include <gel++/Image.h>
 
 namespace gel {
 
@@ -159,11 +160,22 @@ elf::File *File::toELF(void) {
 
 
 /**
- * @fn Image *File::make(void) throw(Exception);
+ * @fn Image *File::make(const Parameter& params) throw(Exception);
+ * Build an image considering the current file as the main program and
+ * using the default image builder of the file type. For ELF file,
+ * the Unix image builder is used.
+ * @param params	Parameters to build the image.
+ */
+
+
+/**
  * Build an image considering the current file as the main program and
  * using the default image builder of the file type. For ELF file,
  * the Unix image builder is used.
  */
+Image *File::make(void) throw(Exception) {
+	return make(Parameter::null);
+}
 
 
 /**
@@ -175,7 +187,7 @@ elf::File *File::toELF(void) {
 
 
 /**
- * @fn int File::count(void) const;
+ * @fn int File::count(void);
  * Count the number of segments. Notice that the segment 0
  * always corresponds to a null segment (not mapped in memory).
  * @return	Get the count of segments.
@@ -183,23 +195,10 @@ elf::File *File::toELF(void) {
 
 
 /**
- * @fn Segment *File::segment(int i) const;
+ * @fn Segment *File::segment(int i);
  * @param i	Index of the accessed segment.
  * @return	Corresponding segment.
  * @warning An asertion failure is raised if i does not match.
- */
-
-
-/**
- * @fn void File::relocate(Image *image) throw(Exception);
- * This function is called by the dynamic linker to let a file
- * involved in an image building to apply relocation to its own
- * segments (depending closely on the type of the file).
- *
- * When this call is performed, the file is ensured that its
- * segments has been mapped in the image.
- *
- * @param image		Currently built image.
  */
 
 

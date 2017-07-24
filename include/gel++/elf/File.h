@@ -97,12 +97,12 @@ public:
 	virtual bool isBigEndian(void);
 	virtual address_type_t addressType(void);
 	virtual address_t entry(void);
-	virtual Image *make(void) throw(Exception);
-	virtual void relocate(Image *image) throw(Exception);
-	virtual int count(void) const;
-	virtual Segment *segment(int i) const;
+	virtual Image *make(const Parameter& params) throw(Exception);
+	virtual int count(void);
+	virtual Segment *segment(int i);
 
 private:
+	void initSections(void);
 	void read(void *buf, t::uint32 size) throw(Exception);
 	void readAt(t::uint32 pos, void *buf, t::uint32 size) throw(Exception);
 
@@ -121,6 +121,7 @@ private:
 	t::uint8 *ph_buf;
 	Vector<ProgramHeader> phs;
 	SymbolMap *syms;
+	Vector<Segment *> segs;
 };
 
 class NoteIter {

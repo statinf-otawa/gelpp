@@ -29,6 +29,7 @@ namespace gel {
 using namespace elm;
 class Image;
 class Manager;
+class Parameter;
 namespace elf { class File; }
 
 class Segment {
@@ -65,9 +66,10 @@ public:
 	virtual bool isBigEndian(void) = 0;
 	virtual address_type_t addressType(void) = 0;
 	virtual address_t entry(void) = 0;
-	virtual int count(void) const = 0;
-	virtual Segment *segment(int i) const = 0;
-	virtual Image *make(void) throw(Exception) = 0;
+	virtual int count(void) = 0;
+	virtual Segment *segment(int i) = 0;
+	virtual Image *make(void) throw(Exception);
+	virtual Image *make(const Parameter& params) throw(Exception) = 0;
 
 protected:
 	Manager& man;

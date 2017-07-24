@@ -93,6 +93,12 @@ public:
 class ImageBuilder {
 public:
 	virtual ~ImageBuilder(void);
+	virtual Image *link(File *file, const Parameter& param = Parameter::null) throw(Exception) = 0;
+	virtual File *retrieve(string name) throw(Exception) = 0;
+};
+
+class SimpleBuilder: public ImageBuilder {
+public:
 	virtual Image *link(File *file, const Parameter& param = Parameter::null) throw(Exception);
 	virtual File *retrieve(string name) throw(Exception);
 };

@@ -20,6 +20,7 @@
 #include <elm/array.h>
 #include <gel++/elf/defs.h>
 #include <gel++/elf/File.h>
+#include <gel++/Image.h>
 
 namespace gel { namespace elf {
 
@@ -234,28 +235,63 @@ address_t File::entry(void) {
 
 /**
  */
-Image *File::make(void) throw(Exception) {
-	throw Exception("File::make() not implemented!");
+Image *File::make(const Parameter& params) throw(Exception) {
+	SimpleBuilder builder;
+	return builder.link(this, params);
 }
 
 
 /**
  */
-void File::relocate(Image *image) throw(Exception) {
-	throw Exception("File::relocate() not implemented!");
+int File::count(void) {
+	if(!sec_buf)
+		initSections();
+	return segs.count();
 }
 
 /**
  */
-int File::count(void) const {
-	return sects.count();
+Segment *File::segment(int i) {
+	if(!sec_buf)
+		initSections();
+	return segs[i];
 }
 
+
 /**
+ * Initialize the section part.
  */
-Segment *File::segment(int i) const {
-	return sects[i];
+void File::initSections(void) {
+
+	// allocate memory
+	t::uint32 size = h->e_shentsize * h->e_shnum;
+	sec_buf = new t::uint8[size];
+	array::set<uint8_t>(sec_buf, size, 0);
+
+	// load sections
+	readAt(h->e_shoff, sec_buf, size);
+
+	// initialize sections
+	sects.setLength(h->e_shnum);
+	for(int i = 0; i < h->e_shnum; i++) {
+		Elf32_Shdr *s = (Elf32_Shdr *)(sec_buf + i * h->e_shentsize);
+		fix(s->sh_addr);
+		fix(s->sh_addralign);
+		fix(s->sh_entsize);
+		fix(s->sh_flags);
+		fix(s->sh_info);
+		fix(s->sh_link);
+		fix(s->sh_name);
+		fix(s->sh_offset);
+		fix(s->sh_size);
+		fix(s->sh_type);
+		sects[i] = new Section(this, s);
+		if(s->sh_flags & SHF_ALLOC)
+			segs.add(sects[i]);
+	}
+
 }
+
 
 /**
  * Get the sections of the file.
@@ -263,34 +299,8 @@ Segment *File::segment(int i) const {
  * @throw gel::Exception 	If there is an error when file is read.
  */
 Vector<Section *>& File::sections(void) throw(gel::Exception) {
-	if(!sec_buf) {
-
-		// allocate memory
-		t::uint32 size = h->e_shentsize * h->e_shnum;
-		sec_buf = new t::uint8[size];
-		array::set<uint8_t>(sec_buf, size, 0);
-
-		// load sections
-		readAt(h->e_shoff, sec_buf, size);
-
-		// initialize sections
-		sects.setLength(h->e_shnum);
-		for(int i = 0; i < h->e_shnum; i++) {
-			Elf32_Shdr *s = (Elf32_Shdr *)(sec_buf + i * h->e_shentsize);
-			fix(s->sh_addr);
-			fix(s->sh_addralign);
-			fix(s->sh_entsize);
-			fix(s->sh_flags);
-			fix(s->sh_info);
-			fix(s->sh_link);
-			fix(s->sh_name);
-			fix(s->sh_offset);
-			fix(s->sh_size);
-			fix(s->sh_type);
-			sects[i] = new Section(this, s);
-		}
-
-	}
+	if(!sec_buf)
+		initSections();
 	return sects;
 }
 
