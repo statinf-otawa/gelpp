@@ -57,11 +57,11 @@ public:
 			try {
 				elf::File *f = gel::Manager::openELF(args[i]);
 				for(int i = 0; i < f->sections().length(); i++) {
-					elf::Section& sect = f->sections()[i];
-					if(sect.info().sh_type == SHT_SYMTAB || sect.info().sh_type == SHT_DYNAMIC) {
-						cout << "SECTION " << sect.name() << io::endl;
+					elf::Section *sect = f->sections()[i];
+					if(sect->info().sh_type == SHT_SYMTAB || sect->info().sh_type == SHT_DYNAMIC) {
+						cout << "SECTION " << sect->name() << io::endl;
 						cout << "st_value st_size  binding type    st_shndx         name\n";
-						for(elf::SymbolIter sym(*f, sect); sym; sym++)
+						for(elf::SymbolIter sym(*f, *sect); sym; sym++)
 							cout <<	word_fmt((*sym).st_value)						<< ' '
 								 << word_fmt((*sym).st_size) 						<< ' '
 								 << io::fmt(get_binding(*sym)).width(7)				<< ' '
@@ -132,7 +132,7 @@ private:
 			if(file->sections().length() <= infos.st_shndx)
 				return _ << infos.st_shndx;
 			else
-				return file->sections()[infos.st_shndx].name();
+				return file->sections()[infos.st_shndx]->name();
 			}
 		}
 	}

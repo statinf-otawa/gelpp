@@ -82,7 +82,7 @@ public:
 
 	const Elf32_Ehdr& info(void) const { return *h; }
 	typedef Vector<Section>::Iter SecIter;
-	Vector<Section>& sections(void) throw(gel::Exception);
+	Vector<Section *>& sections(void) throw(gel::Exception);
 	typedef Vector<ProgramHeader>::Iter ProgIter;
 	Vector<ProgramHeader>& programHeaders(void) throw(gel::Exception);
 
@@ -97,9 +97,10 @@ public:
 	virtual bool isBigEndian(void);
 	virtual address_type_t addressType(void);
 	virtual address_t entry(void);
-	virtual Image *make(DynamicLinker *linker = 0) throw(Exception);
+	virtual Image *make(void) throw(Exception);
 	virtual void relocate(Image *image) throw(Exception);
-	virtual Array<Segment *> segments(void);
+	virtual int count(void) const;
+	virtual Segment *segment(int i) const;
 
 private:
 	void read(void *buf, t::uint32 size) throw(Exception);
@@ -116,7 +117,7 @@ private:
 	io::RandomAccessStream *s;
 	t::uint8 *sec_buf;
 	Section *str_tab;
-	Vector<Section> sects;
+	Vector<Section *> sects;
 	t::uint8 *ph_buf;
 	Vector<ProgramHeader> phs;
 	SymbolMap *syms;

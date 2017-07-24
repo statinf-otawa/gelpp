@@ -55,18 +55,18 @@ public:
 			for(int i = 0; i < args.count(); i++) {
 
 				elf::File *f = gel::Manager::openELF(args[i]);
-				Vector<elf::Section>& ss = f->sections();
+				Vector<elf::Section *>& ss = f->sections();
 
 				// find option
 				if(find) {
 					bool found = false;
 					for(int j = 1; j < ss.count(); j++) {
-						const elf::Elf32_Shdr& si = ss[j].info();
+						const elf::Elf32_Shdr& si = ss[j]->info();
 						if((si.sh_flags & SHF_ALLOC)
 						&& si.sh_addr <= *find && *find < si.sh_addr + si.sh_size) {
 							found = true;
-							cout << "address " << word_fmt(*find) << " found in section " << ss[j].name() << io::endl;
-							display_section(j, ss[j]);
+							cout << "address " << word_fmt(*find) << " found in section " << ss[j]->name() << io::endl;
+							display_section(j, *ss[j]);
 						}
 					}
 					if(!found)
@@ -78,7 +78,7 @@ public:
 				else {
 					cout << "INDEX TYPE         FLAGS VADDR    SIZE     OFFSET   LINK  NAME\n";
 					for(int j = 0; j < ss.count(); j++)
-						display_section(j, ss[j]);
+						display_section(j, *ss[j]);
 				}
 
 				delete f;

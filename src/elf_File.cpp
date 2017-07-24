@@ -106,9 +106,9 @@ const File::SymbolMap& File::symbols(void) throw(Exception) {
 		syms = new SymbolMap();
 		sections();
 		for(int i = 0; i < sects.count(); i++) {
-			Section& s = sects[i];
-			if(s.info().sh_type == SHT_SYMTAB || s.info().sh_type == SHT_DYNSYM)
-				for(SymbolIter sym(*this, s); sym; sym++)
+			Section *s = sects[i];
+			if(s->info().sh_type == SHT_SYMTAB || s->info().sh_type == SHT_DYNSYM)
+				for(SymbolIter sym(*this, *s); sym; sym++)
 					syms->put(sym.name(), &*sym);
 		}
 	}
@@ -155,7 +155,7 @@ cstring File::stringAt(t::uint32 offset) throw(gel::Exception) {
 	if(!str_tab) {
 		if(h->e_shstrndx >= sections().length())
 			throw gel::Exception(_ << "strtab index out of bound");
-		str_tab = &sections()[h->e_shstrndx];
+		str_tab = sections()[h->e_shstrndx];
 		cerr << "DEBUG: strtab = " << h->e_shstrndx << io::endl;
 		cerr << "DEBUG: size = " << str_tab->info().sh_size << io::endl;
 	}
@@ -234,7 +234,7 @@ address_t File::entry(void) {
 
 /**
  */
-Image *File::make(DynamicLinker *linker) throw(Exception) {
+Image *File::make(void) throw(Exception) {
 	throw Exception("File::make() not implemented!");
 }
 
@@ -245,10 +245,16 @@ void File::relocate(Image *image) throw(Exception) {
 	throw Exception("File::relocate() not implemented!");
 }
 
+/**
+ */
+int File::count(void) const {
+	return sects.count();
+}
 
 /**
  */
-Array<Segment *> File::segments(void) {
+Segment *File::segment(int i) const {
+	return sects[i];
 }
 
 /**
@@ -256,7 +262,7 @@ Array<Segment *> File::segments(void) {
  * @return	File sections.
  * @throw gel::Exception 	If there is an error when file is read.
  */
-Vector<Section>& File::sections(void) throw(gel::Exception) {
+Vector<Section *>& File::sections(void) throw(gel::Exception) {
 	if(!sec_buf) {
 
 		// allocate memory
@@ -281,7 +287,7 @@ Vector<Section>& File::sections(void) throw(gel::Exception) {
 			fix(s->sh_offset);
 			fix(s->sh_size);
 			fix(s->sh_type);
-			sects[i] = Section(this, s);
+			sects[i] = new Section(this, s);
 		}
 
 	}
@@ -579,7 +585,7 @@ cstring SymbolIter::name(void) throw(Exception) {
 		// get the section and the buffer
 		if(sn == 0 || sn >= f.sections().length())
 			throw Exception(_ << "bad number for symbol table string section in " << s.name());
-		names = f.sections()[sn].content();
+		names = f.sections()[sn]->content();
 	}
 	cstring r;
 	names.get(item().st_name, r);

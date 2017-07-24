@@ -159,9 +159,10 @@ elf::File *File::toELF(void) {
 
 
 /**
- * @fn Image *File::make(DynamicLinker *linker = 0) throw(Exception);
- * Build an image considering the current file as the main program.
- * @param linker	(Optional) Dynamic linker to use.
+ * @fn Image *File::make(void) throw(Exception);
+ * Build an image considering the current file as the main program and
+ * using the default image builder of the file type. For ELF file,
+ * the Unix image builder is used.
  */
 
 
@@ -169,6 +170,23 @@ elf::File *File::toELF(void) {
  * @fn Table<Segment *> File::segments(void);
  * Get the list of segments composing the file.
  * @return	List of segments.
+ */
+
+
+
+/**
+ * @fn int File::count(void) const;
+ * Count the number of segments. Notice that the segment 0
+ * always corresponds to a null segment (not mapped in memory).
+ * @return	Get the count of segments.
+ */
+
+
+/**
+ * @fn Segment *File::segment(int i) const;
+ * @param i	Index of the accessed segment.
+ * @return	Corresponding segment.
+ * @warning An asertion failure is raised if i does not match.
  */
 
 

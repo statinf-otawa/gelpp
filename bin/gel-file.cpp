@@ -31,7 +31,7 @@ class FileCommand: public option::Manager {
 public:
 	FileCommand(void)
 	:	Manager(Manager::Make("gel-file", Version(2, 0))
-			.copyright("Copyright (c) 2016	, université de Toulouse")
+			.copyright("Copyright (c) 2016, université de Toulouse")
 			.description("Provide basic information about a binary file")
 			.free_argument("BINARY_FILE")
 			.help()),
@@ -87,8 +87,10 @@ public:
 			}
 			catch(gel::Exception& e) {
 				cerr << "ERROR: " << e.message() << io::endl;
+				return 1;
 			}
 		}
+		return 0;
 	}
 
 protected:

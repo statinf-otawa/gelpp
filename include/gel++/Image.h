@@ -30,34 +30,32 @@ class Image;
 
 class ImageSegment {
 public:
-	ImageSegment(Buffer buf, address_t addr);
+	ImageSegment(Buffer buf, address_t addr, bool _free = false);
 	ImageSegment(File *file, Segment *segment, address_t addr);
+	~ImageSegment(void);
+	void clean(void);
 	inline File *file(void) const { return _file; }
 	inline Segment *segment(void) const { return _seg; }
 	inline address_t base(void) const { return _base; }
 	inline size_t size(void) const { return _buf.size(); }
 	inline const Buffer& buffer(void) const { return _buf; }
+	inline Buffer& buffer(void) { return _buf; }
+	inline range_t range(void) const { return range_t(_base, _buf.size()); }
 
 private:
 	File *_file;
 	Segment *_seg;
 	address_t _base;
 	Buffer _buf;
-
-};
-
-class DynamicLinker {
-public:
-	virtual ~DynamicLinker(void);
-	virtual void link(Image *image, File *file) throw(Exception) = 0;
-	virtual void link(Image *image, const string& name) throw(Exception);
+	bool _free;
 };
 
 class Image {
 public:
-	static Image *make(File *program) throw(Exception);
-
-	inline File *program(void) const { return prog; }
+	Image(File *program);
+	~Image(void);
+	inline File *program(void) const { return _prog; }
+	void clean(void);
 
 	typedef BiDiList<File *>::Iter FileIter;
 	inline FileIter files(void) const { return FileIter(_files); }
@@ -65,14 +63,38 @@ public:
 	typedef BiDiList<ImageSegment *>::Iter SegIter;
 	inline SegIter segments(void) const { return SegIter(segs); }
 
+	void add(File *file);
 	void add(ImageSegment *segment);
 	ImageSegment *at(address_t address);
 
 private:
-	Image(File *program);
-	File *prog;
+	File *_prog;
 	BiDiList<File *> _files;
 	BiDiList<ImageSegment *> segs;
+};
+
+class Parameter {
+public:
+	static const cstring gen_abi, unix_abi;
+	static const Parameter null;
+
+	Parameter(void);
+	virtual ~Parameter(void);
+	virtual cstring abi(void) const;
+
+	Array<cstring> arg;
+	Array<cstring> env;
+	bool stack_alloc, stack_at;
+	address_t stack_addr;
+	t::size stack_size;
+	Array<sys::Path> paths;
+};
+
+class ImageBuilder {
+public:
+	virtual ~ImageBuilder(void);
+	virtual Image *link(File *file, const Parameter& param = Parameter::null) throw(Exception);
+	virtual File *retrieve(string name) throw(Exception);
 };
 
 } // gel

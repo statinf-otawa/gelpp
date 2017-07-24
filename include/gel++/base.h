@@ -79,7 +79,8 @@ public:
 	inline Buffer(Decoder *decoder, const void *buffer, size_t size)
 		: d(decoder), b((t::uint8 *)buffer), sz(size) { }
 
-	inline const t::uint8 *buffer(void) const { return b; }
+	inline const t::uint8 *bytes(void) const { return b; }
+	inline t::uint8 *bytes(void) { return b; }
 	inline size_t size(void) const { return sz; }
 	static Buffer null;
 	inline bool isNull(void) const { return !b; }
@@ -115,7 +116,7 @@ public:
 
 private:
 	Decoder *d;
-	const t::uint8 *b;
+	t::uint8 *b;
 	size_t sz;
 };
 io::Output& operator<<(io::Output& out, const Buffer& buf);

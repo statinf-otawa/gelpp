@@ -27,7 +27,6 @@
 namespace gel {
 
 using namespace elm;
-class DynamicLinker;
 class Image;
 class Manager;
 namespace elf { class File; }
@@ -66,10 +65,9 @@ public:
 	virtual bool isBigEndian(void) = 0;
 	virtual address_type_t addressType(void) = 0;
 	virtual address_t entry(void) = 0;
-	virtual Array<Segment *> segments(void) = 0;
-
-	virtual Image *make(DynamicLinker *linker = 0) throw(Exception) = 0;
-	virtual void relocate(Image *image) throw(Exception) = 0;
+	virtual int count(void) const = 0;
+	virtual Segment *segment(int i) const = 0;
+	virtual Image *make(void) throw(Exception) = 0;
 
 protected:
 	Manager& man;
