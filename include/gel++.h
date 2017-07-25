@@ -23,6 +23,7 @@
 #include <elm/util/ErrorHandler.h>
 #include <gel++/Exception.h>
 #include <gel++/File.h>
+#include <gel++/Image.h>
 
 namespace gel {
 

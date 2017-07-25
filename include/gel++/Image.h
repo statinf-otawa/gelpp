@@ -30,7 +30,13 @@ class Image;
 
 class ImageSegment {
 public:
-	ImageSegment(Buffer buf, address_t addr, bool _free = false);
+	typedef t::uint32 flags_t;
+	static const flags_t
+		WRITABLE	= 0x01,
+		EXECUTABLE	= 0x02,
+		TO_FREE		= 0x04;
+
+	ImageSegment(Buffer buf, address_t addr, flags_t flags);
 	ImageSegment(File *file, Segment *segment, address_t addr);
 	~ImageSegment(void);
 	void clean(void);
@@ -41,13 +47,16 @@ public:
 	inline const Buffer& buffer(void) const { return _buf; }
 	inline Buffer& buffer(void) { return _buf; }
 	inline range_t range(void) const { return range_t(_base, _buf.size()); }
+	inline flags_t flags(void) const { return _flags; }
+	inline bool isWritable(void) const { return _flags & WRITABLE; }
+	inline bool isExecutable(void) const { return _flags & EXECUTABLE; }
 
 private:
 	File *_file;
 	Segment *_seg;
 	address_t _base;
 	Buffer _buf;
-	bool _free;
+	flags_t _flags;
 };
 
 class Image {
