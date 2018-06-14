@@ -19,7 +19,9 @@
 #ifndef INCLUDE_GEL___BASE_H_
 #define INCLUDE_GEL___BASE_H_
 
+#include <elm/array.h>
 #include <elm/types.h>
+#include "Exception.h"
 
 namespace gel {
 
@@ -69,6 +71,13 @@ public:
 	virtual void fix(t::int32& w) = 0;
 	virtual void fix(t::uint64& w) = 0;
 	virtual void fix(t::int64& w) = 0;
+
+	virtual void unfix(t::uint16& w) = 0;
+	virtual void unfix(t::int16& w) = 0;
+	virtual void unfix(t::uint32& w) = 0;
+	virtual void unfix(t::int32& w) = 0;
+	virtual void unfix(t::uint64& w) = 0;
+	virtual void unfix(t::int64& w) = 0;
 };
 
 class Buffer {
@@ -110,6 +119,27 @@ public:
 	inline void get(offset_t off, string& s)
 		{ ASSERT(off < sz); s = string((const char *)(b + off)); }
 
+	inline void set(offset_t off, t::uint8 v)
+		{ ASSERT(off + sizeof(t::uint8) <= sz); *static_cast<t::uint8 *>(b + off) = v; }
+	inline void set(offset_t off, t::int8 v)
+		{ ASSERT(off + sizeof(t::int8) <= sz); *(t::int8 *)(b + off) = v; }
+	inline void set(offset_t off, t::uint16 v)
+		{ ASSERT(off + sizeof(t::uint16) <= sz); *(t::uint16 *)(b + off) = v; }
+	inline void set(offset_t off, t::int16 v)
+		{ ASSERT(off + sizeof(t::int16) <= sz); *(t::int16 *)(b + off) = v; }
+	inline void set(offset_t off, t::uint32 v)
+		{ ASSERT(off + sizeof(t::uint32) <= sz); *(t::uint32 *)(b + off) = v; }
+	inline void set(offset_t off, t::int32 v)
+		{ ASSERT(off + sizeof(t::int32) <= sz); *(t::int32 *)(b + off) = v; }
+	inline void set(offset_t off, t::uint64 v)
+		{ ASSERT(off + sizeof(t::uint64) <= sz); *(t::uint64 *)(b + off) = v; }
+	inline void set(offset_t off, t::int64 v)
+		{ ASSERT(off + sizeof(t::int64) <= sz); *(t::int64 *)(b + off) = v; }
+	inline void set(offset_t off, cstring s)
+		{ size_t ss = s.length() + 1; ASSERT(off + ss <= sz); array::copy(b + off, (const t::uint8 *)(s.chars()), ss); }
+	inline void set(offset_t off, string s)
+		{ size_t ss = s.length() + 1; ASSERT(off + ss <= sz); array::copy(b + off, (const t::uint8 *)(s.chars()), ss - 1); *(b + off + ss - 1) = '\0'; }
+
 	inline operator bool(void) const { return !isNull(); }
 	inline bool operator==(const Buffer& b) const { return equals(b); }
 	inline bool operator!=(const Buffer& b) const { return !equals(b); }
@@ -131,6 +161,8 @@ public:
 	inline operator bool(void) const { return !ended(); }
 	inline bool avail(size_t s) { return off + s <= buf.size(); }
 	inline const t::uint8 *here(void) const { return buf.at(off); }
+	inline offset_t offset(void) const { return off; }
+	inline void finish(void) { off = buf.size(); }
 
 	inline bool skip(size_t s) { if(!avail(s)) return false; off += s; return true; }
 
@@ -153,6 +185,27 @@ public:
 	bool read(cstring& s);
 	inline bool read(string& s) { cstring r; read(r); s = string(r); }
 	bool read(size_t size, const t::uint8 *& buf);
+
+	inline bool write(t::uint8 v)
+		{ if(!avail(sizeof(t::uint8))) return false; buf.set(off, v); off += sizeof(t::uint8); return true; }
+	inline bool write(t::int8 v)
+		{ if(!avail(sizeof(t::int8))) return false; buf.set(off, v); off += sizeof(t::int8); return true; }
+	inline bool write(t::uint16 v)
+		{ if(!avail(sizeof(t::uint16))) return false; buf.set(off, v); off += sizeof(t::uint16); return true; }
+	inline bool write(t::int16 v)
+		{ if(!avail(sizeof(t::int16))) return false; buf.set(off, v); off += sizeof(t::int16); return true; }
+	inline bool write(t::uint32 v)
+		{ if(!avail(sizeof(t::uint32))) return false; buf.set(off, v); off += sizeof(t::uint32); return true; }
+	inline bool write(t::int32 v)
+		{ if(!avail(sizeof(t::int32))) return false; buf.set(off, v); off += sizeof(t::int32); return true; }
+	inline bool write(t::uint64 v)
+		{ if(!avail(sizeof(t::uint64))) return false; buf.set(off, v); off += sizeof(t::uint64); return true; }
+	inline bool write(t::int64 v)
+		{ if(!avail(sizeof(t::int64))) return false; buf.set(off, v); off += sizeof(t::int64); return true; }
+	inline bool write(cstring s)
+		{ if(!avail(s.length() + 1)) return false; buf.set(off, s); off += s.length(); return true; }
+	inline bool write(string s)
+		{ if(!avail(s.length() + 1)) return false; buf.set(off, s); off += s.length(); return true; }
 
 private:
 	offset_t off;

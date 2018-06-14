@@ -159,9 +159,33 @@ typedef struct Elf32_Phdr {
         Elf32_Word p_align;		/**< Alignment in power of two (2**n). */
 } Elf32_Phdr;
 
-#define DT_NULL		0
-#define DT_NEEDED 	1
-#define DT_STRTAB	5
+#define DT_NULL		 0
+#define DT_NEEDED 	 1	/* d_val */
+#define DT_PLTRELSZ	 2	/* d_val */
+#define DT_PLTGOT	 3	/* d_ptr */
+#define DT_HASH		 4	/* d_ptr */
+#define DT_STRTAB	 5	/* d_ptr */
+#define DT_SYMTAB	 6	/* d_ptr */
+#define DT_RELA		 7	/* d_ptr */
+#define DT_RELASZ	 8	/* d_val */
+#define DT_RELAENT	 9	/* d_val */
+#define DT_STRSZ	10	/* d_val */
+#define DT_SYMENT	11	/* d_val */
+#define DT_INIT		12	/* d_ptr */
+#define DT_FINI		13	/* d_ptr */
+#define DT_SONAME	14	/* d_val */
+#define DT_RPATH	15	/* d_val */
+#define DT_SYMBOLIC	16
+#define DT_REL		17	/* d_ptr */
+#define DT_RELSZ	18	/* d_val */
+#define DT_RELENT	19	/* d_val */
+#define DT_PLTREL	20	/* d_val */
+#define DT_DEBUG	21	/* d_ptr */
+#define DT_TEXTREL	22
+#define DT_JMPREL	23	/* d_ptr */
+#define DT_BIND_NOW	24
+#define DT_LOPROC	0x70000000
+#define DT_HIPROC	0x7fffffff
 
 /* Elf32_Phdr p_flags */
 #define PF_X		(1 << 0)
@@ -251,6 +275,9 @@ typedef struct Elf32_Rela {
 #define ENDIAN4(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP4(v))
 #define ENDIAN8(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP8(v))
 #endif
+#define UN_ENDIAN2(e, v)	ENDIAN2(e, v)
+#define UN_ENDIAN4(e, v)	ENDIAN4(e, v)
+#define UN_ENDIAN8(e, v)	ENDIAN8(e, v)
 
 } }		// gel::elf
 

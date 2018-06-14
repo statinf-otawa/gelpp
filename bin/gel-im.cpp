@@ -65,7 +65,7 @@ public:
 
 				// display all segments
 				for(Image::SegIter seg = im->segments(); seg; seg++) {
-					cout << "BLOCK " << f->format(seg->base())
+					cout << "BLOCK " << seg->name() << " @ " << f->format(seg->base())
 						 << " (" << io::hex(seg->size()) << ")";
 					if(seg->isWritable())
 						cout << " WRITE";
@@ -81,7 +81,7 @@ public:
 							if(p < 15)
 								p++;
 							else {
-								cout << "\n" << f->format(a);
+								cout << "\n" << f->format(a + c.offset());
 								p = 0;
 							}
 

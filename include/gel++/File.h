@@ -59,6 +59,7 @@ public:
 
 	inline sys::Path path(void) const { return _path; }
 	inline io::IntFormat format(address_t a) { return gel::format(addressType(), a); }
+	inline Manager& manager(void) const { return man; }
 
 	virtual elf::File *toELF(void);
 

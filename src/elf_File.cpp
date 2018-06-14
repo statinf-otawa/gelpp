@@ -20,6 +20,7 @@
 #include <elm/array.h>
 #include <gel++/elf/defs.h>
 #include <gel++/elf/File.h>
+#include <gel++/elf/UnixBuilder.h>
 #include <gel++/Image.h>
 
 namespace gel { namespace elf {
@@ -32,6 +33,35 @@ namespace gel { namespace elf {
  * * Tool Interface Standard (TIS), Executable and Linking Format (ELF) Specification Version 1.2. TIS Committee. May 1995.
  *
  */
+
+class Segment: public gel::Segment {
+public:
+	Segment(ProgramHeader *h): _head(h) {
+		if(h->info().p_flags & PF_X)
+			_name = "code";
+		else if(h->info().p_flags & PF_W)
+			_name = "data";
+		else if(h->info().p_flags & PF_R)
+			_name = "rodata";
+		else
+			_name = "unknown";
+	}
+
+	virtual cstring name(void) throw(Exception) { return _name; }
+	virtual address_t baseAddress(void) { return _head->info().p_vaddr; }
+	virtual address_t loadAddress(void) { return _head->info().p_paddr; }
+	virtual size_t size(void) { return _head->info().p_memsz; }
+	virtual size_t alignment(void) { return _head->info().p_align; }
+	virtual bool isExecutable(void) { return _head->info().p_flags & PF_X; }
+	virtual bool isWritable(void)  { return _head->info().p_flags & PF_W; }
+	virtual bool hasContent(void) { return true; }
+	virtual Buffer buffer(void) throw(Exception) { return _head->content(); }
+
+private:
+	cstring _name;
+	ProgramHeader *_head;
+};
+
 
 /**
  * @class File
@@ -47,6 +77,12 @@ void File::fix(t::int32& i)		{ i = ENDIAN4(h->e_ident[EI_DATA], i); }
 void File::fix(t::uint64& i)	{ i = ENDIAN8(h->e_ident[EI_DATA], i); }
 void File::fix(t::int64& i)		{ i = ENDIAN8(h->e_ident[EI_DATA], i); }
 
+void File::unfix(t::uint16& i) 	{ i = UN_ENDIAN2(h->e_ident[EI_DATA], i); }
+void File::unfix(t::int16& i) 	{ i = UN_ENDIAN2(h->e_ident[EI_DATA], i); }
+void File::unfix(t::uint32& i)	{ i = UN_ENDIAN4(h->e_ident[EI_DATA], i); }
+void File::unfix(t::int32& i)	{ i = UN_ENDIAN4(h->e_ident[EI_DATA], i); }
+void File::unfix(t::uint64& i)	{ i = UN_ENDIAN8(h->e_ident[EI_DATA], i); }
+void File::unfix(t::int64& i)	{ i = UN_ENDIAN8(h->e_ident[EI_DATA], i); }
 
 /**
  * Constructor.
@@ -236,24 +272,28 @@ address_t File::entry(void) {
 /**
  */
 Image *File::make(const Parameter& params) throw(Exception) {
-	SimpleBuilder builder;
-	return builder.link(this, params);
+	/*SimpleBuilder builder(this, params);
+	return builder.build();*/
+	UnixBuilder builder(this, params);
+	return builder.build();
 }
 
 
 /**
  */
 int File::count(void) {
-	if(!sec_buf)
-		initSections();
+	if(segs.count() == 0) {
+		programHeaders();
+		for(int i = 0; i < phs.count(); i++)
+			if(phs[i].info().p_type == PT_LOAD)
+				segs.add(new Segment(&phs[i]));
+	}
 	return segs.count();
 }
 
 /**
  */
-Segment *File::segment(int i) {
-	if(!sec_buf)
-		initSections();
+gel::Segment *File::segment(int i) {
 	return segs[i];
 }
 
@@ -286,8 +326,8 @@ void File::initSections(void) {
 		fix(s->sh_size);
 		fix(s->sh_type);
 		sects[i] = new Section(this, s);
-		if(s->sh_flags & SHF_ALLOC)
-			segs.add(sects[i]);
+		/*if(s->sh_flags & SHF_ALLOC)
+			segs.add(sects[i]);*/
 	}
 
 }

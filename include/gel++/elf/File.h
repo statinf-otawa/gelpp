@@ -49,7 +49,7 @@ class Section: public Segment {
 public:
 	Section(void);
 	Section(elf::File *file, Elf32_Shdr *entry);
-	~Section(void);
+	virtual ~Section(void);
 	cstring name(void) throw(gel::Exception);
 	const Elf32_Shdr& info(void) { return *_info; }
 	Buffer content(void) throw(gel::Exception);
@@ -72,19 +72,25 @@ private:
 	t::uint8 *buf;
 };
 
+class Segment;
 
-class File: public gel::File, private Decoder {
+class File: public gel::File, public Decoder {
 	friend class ProgramHeader;
 	friend class Section;
+	friend class Segment;
 public:
 	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception);
 	virtual ~File(void);
 
 	const Elf32_Ehdr& info(void) const { return *h; }
-	typedef Vector<Section>::Iter SecIter;
+	typedef Vector<Section *>::Iter SecIter;
 	Vector<Section *>& sections(void) throw(gel::Exception);
+	inline Section *sectionAt(int i) const { return sects[i]; }
+	inline int sectionCount(void) const { return sects.count(); }
 	typedef Vector<ProgramHeader>::Iter ProgIter;
 	Vector<ProgramHeader>& programHeaders(void) throw(gel::Exception);
+	inline ProgramHeader headerAt(int i) const { return phs[i]; }
+	inline int headerCount(void) const { return phs.count(); }
 
 	cstring stringAt(t::uint32 offset) throw(gel::Exception);
 
@@ -99,7 +105,7 @@ public:
 	virtual address_t entry(void);
 	virtual Image *make(const Parameter& params) throw(Exception);
 	virtual int count(void);
-	virtual Segment *segment(int i);
+	virtual gel::Segment *segment(int i);
 
 private:
 	void initSections(void);
@@ -112,6 +118,13 @@ private:
 	virtual void fix(t::int32& i);
 	virtual void fix(t::uint64& i);
 	virtual void fix(t::int64& i);
+
+	virtual void unfix(t::uint16& w);
+	virtual void unfix(t::int16& w);
+	virtual void unfix(t::uint32& w);
+	virtual void unfix(t::int32& w);
+	virtual void unfix(t::uint64& w);
+	virtual void unfix(t::int64& w);
 
 	Elf32_Ehdr *h;
 	io::RandomAccessStream *s;

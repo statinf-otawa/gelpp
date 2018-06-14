@@ -1,5 +1,6 @@
 add_library(gel++ SHARED
 	elf_File.cpp
+	elf_UnixBuilder.cpp
 	gel_File.cpp
 	gel_Image.cpp
 	gel_Manager.cpp)
