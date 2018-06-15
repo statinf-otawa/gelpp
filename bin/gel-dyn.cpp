@@ -21,6 +21,7 @@
 #include <gel++/elf/defs.h>
 #include <gel++/elf/File.h>
 #include <gel++.h>
+#include <gel++/elf/ArchPlugin.h>
 
 using namespace elm;
 using namespace elm::option;
@@ -80,6 +81,7 @@ protected:
 private:
 
 	void processELF(elf::File *file) throw(gel::Exception) {
+		static const int width = 16;
 		static cstring labels[] = {
 			"NULL",
 			"NEEDED",
@@ -105,15 +107,31 @@ private:
 			"DEBUG",
 			"TEXTREL",
 			"JMPREL",
-			"BIND_NOW"
+			"BIND_NOW",
+			"INIT_ARRAY",
+			"FINI_ARRAY",
+			"INIT_ARRAYSZ",
+			"FINI_ARRAYSZ",
+			"RUNPATH",
+			"FLAGS",
+			"",
+			"PREINIT_ARRAY",
+			"PREINIT_ARRAYSZ",
+			"SYMTAB_SHNDX"
 		};
 
+		// get the plugin
+		elf::ArchPlugin *plug = elf::ArchPlugin::plug(file->info().e_machine);
+
+		// look all sections
 		for(elf::File::SecIter s = file->sections(); s; s++)
+
+			// display the dynamics
 			if(s->info().sh_type == SHT_DYNAMIC) {
 
 				// prepare data
 				Buffer buf = s->buffer();
-				if(s->info().sh_link >= file->sectionCount())
+				if(int(s->info().sh_link) >= file->sectionCount())
 					throw gel::Exception("bad string table in dynamic");
 				Buffer sbuf = file->sectionAt(s->info().sh_link)->buffer();
 
@@ -122,10 +140,20 @@ private:
 					const elf::Elf32_Dyn *e = (const elf::Elf32_Dyn *)buf.at(off);
 					if(e->d_tag == DT_NULL)
 						break;
-					if(e->d_tag > DT_BIND_NOW)
-						cout << file->format(e->d_tag) << ": " << file->format(e->d_un.d_val) << io::endl;
+					if(e->d_tag >= DT_COUNT) {
+						if(plug != nullptr) {
+							StringBuffer sbuf;
+							plug->outputDynTag(sbuf, *e);
+							cout << io::fmt(sbuf.toString()).width(width);
+							cout << ": ";
+							plug->outputDynValue(cout, *e, buf);
+							cout << io::endl;
+						}
+						else
+							cout << file->format(e->d_tag) << ": " << file->format(e->d_un.d_val) << io::endl;
+					}
 					else {
-						cout << io::fmt(labels[e->d_tag]).width(8) << ": ";
+						cout << io::fmt(labels[e->d_tag]).width(width) << ": ";
 						switch(e->d_tag) {
 						case DT_NULL:
 						case DT_SYMBOLIC:
@@ -135,6 +163,7 @@ private:
 						case DT_NEEDED:
 						case DT_SONAME:
 						case DT_RPATH:
+						case DT_RUNPATH:
 							if(e->d_un.d_val >= sbuf.size())
 								throw gel::Exception(_ << "bad string offset in " << e->d_tag);
 							else {
@@ -151,6 +180,9 @@ private:
 						case DT_RELSZ:
 						case DT_RELENT:
 						case DT_PLTREL:
+						case DT_INIT_ARRAYSZ:
+						case DT_FINI_ARRAYSZ:
+						case DT_PREINIT_ARRAYSZ:
 							cout << e->d_un.d_val;
 							break;
 						case DT_PLTGOT:
@@ -163,13 +195,29 @@ private:
 						case DT_REL:
 						case DT_DEBUG:
 						case DT_JMPREL:
+						case DT_INIT_ARRAY:
+						case DT_FINI_ARRAY:
+						case DT_PREINIT_ARRAY:
+						case DT_SYMTAB_SHNDX:
 							cout << file->format(e->d_un.d_ptr);
+							break;
+						case DT_FLAGS:
+							if((e->d_un.d_val & DF_ORIGIN)		!= 0)	cout << "ORIGIN ";
+							if((e->d_un.d_val & DF_SYMBOLIC)	!= 0)	cout << "SYMBOLIC ";
+							if((e->d_un.d_val & DF_TEXTREL) 	!= 0)	cout << "TEXTREL ";
+							if((e->d_un.d_val & DF_BIND_NOW)	!= 0)	cout << "BIND_NOW ";
+							if((e->d_un.d_val & DF_STATIC_TLS)	!= 0)	cout << "STATIC_TLS ";
+							break;
 						}
 						cout << io::endl;
 					}
 				}
 
 			}
+
+		// release the plugin
+		if(plug != nullptr)
+			plug->unplug();
 	}
 
 	Vector<string> args;

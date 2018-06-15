@@ -68,7 +68,11 @@ UnixParameter UnixParameter::null;
 /**
  */
 UnixBuilder::UnixBuilder(File *prog, const Parameter& params) throw(gel::Exception)
-: ImageBuilder(prog, params), _uparams(&UnixParameter::null), _im(0), _prog(0) {
+:	ImageBuilder(prog, params),
+	_prog(0),
+	_uparams(&UnixParameter::null),
+	_im(0)
+{
 	if(params.abi() == Parameter::unix_abi)
 		_uparams = static_cast<const UnixParameter *>(&params);
 	_prog = prog->toELF();
@@ -86,11 +90,14 @@ Image *UnixBuilder::build(void) throw(gel::Exception) {
 	todo.put(_prog);
 	while(todo) {
 		File *file = todo.get();
-		resolveLibs(file);
 		_im->add(file);
 		address_t top = load(file, base);
 		base = roundup(top, _uparams->page_size);
+		//resolveLibs(file);
 	}
+
+	// build the stack
+	buildStack();
 
 	// clean up
 	_libs.clear();
@@ -159,6 +166,8 @@ gel::File *UnixBuilder::retrieve(string name) throw(Exception) {
  */
 ImageSegment *UnixBuilder::buildStack(void) throw(gel::Exception) {
 	const t::uint32 zero(0);
+	if(_uparams->stack_alloc)
+		return nullptr;
 
 	// compute the sizes
 	size_t s = 0;
@@ -194,6 +203,7 @@ ImageSegment *UnixBuilder::buildStack(void) throw(gel::Exception) {
 	ImageSegment *seg = new ImageSegment(buf, addr, ImageSegment::WRITABLE | ImageSegment::TO_FREE);
 	if(_params.sp_segment)
 		*_params.sp_segment = seg;
+	_im->add(seg);
 
 	// put the main arguments
 	Cursor c(buf);
@@ -250,7 +260,7 @@ void UnixBuilder::resolveLibs(File *file) throw(gel::Exception) {
 		if(sec->info().sh_type == SHT_DYNAMIC) {
 
 			// get string section
-			if(sec->info().sh_link >= file->sectionCount())
+			if(int(sec->info().sh_link) >= file->sectionCount())
 				throw gel::Exception(_ << "format error in " << sec->name());
 			Section *strs = file->sectionAt(sec->info().sh_link);
 			Buffer str = strs->buffer();
@@ -298,10 +308,36 @@ void UnixBuilder::resolveLibs(File *file) throw(gel::Exception) {
 						}
 					}
 					break;
+
+				case DT_PLTRELSZ:
+				case DT_PLTGOT:
+				case DT_HASH:
+				case DT_STRTAB:
+				case DT_SYMTAB:
+				case DT_RELA:
+				case DT_RELASZ:
+				case DT_RELAENT:
+				case DT_STRSZ:
+				case DT_SYMENT:
+				case DT_INIT:
+				case DT_FINI:
+				case DT_SONAME:
+				case DT_SYMBOLIC:
+				case DT_REL:
+				case DT_RELSZ:
+				case DT_RELENT:
+				case DT_PLTREL:
+				case DT_DEBUG:
+				case DT_TEXTREL:
+				case DT_JMPREL:
+				case DT_BIND_NOW:
+					getErrorHandler()->onError(level_warning, _ << "unknown dynamic entry: " << io::hex(e->d_tag));
+					break;
 				}
 			}
 		}
 }
+
 
 /**
  * Load a file at the given base address.

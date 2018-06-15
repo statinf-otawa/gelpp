@@ -124,7 +124,6 @@ private:
 			"SHT_SHLIB",
 			"SHT_DYNSYM"
 		};
-		static char buf[10];
 		if(type >= sizeof(label) / sizeof(const char *))
 			return _ << io::pad('0', io::right(io::hex(io::width(8, type))));
 		else

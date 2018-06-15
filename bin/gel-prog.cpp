@@ -150,9 +150,9 @@ private:
 			"PT_PHDR"
 		};
 		if(type <= PT_PHDR)
-			cout << io::fmt(names[type]).width(10);
+			cout << io::fmt(names[type]).width(11);
 		else
-			cout << io::fmt(type).width(10);
+			cout << io::hex(type).width(8).pad('0').right() << "   ";
 	}
 
 	/**

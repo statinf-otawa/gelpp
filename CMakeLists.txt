@@ -4,6 +4,8 @@ set(GEL_MAJOR	2)
 set(GEL_MINOR	0)
 enable_testing()
 
+set(CMAKE_CXX_FLAGS "-Wall" )
+
 # OS dependencies
 if(NOT WIN32)
 	find_library(DL dl)

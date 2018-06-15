@@ -164,8 +164,8 @@ Buffer Buffer::null;
 /**
  */
 io::Output& operator<<(io::Output& out, const Buffer& buf) {
-	for(int i = 0; i < buf.size(); i += 8) {
-		for(int j = 0; j < 8; j++) {
+	for(size_t i = 0; i < buf.size(); i += 8) {
+		for(size_t j = 0; j < 8; j++) {
 			if(i + j < buf.size()) {
 				t::uint8 b;
 				buf.get(i + j, b);
@@ -175,7 +175,7 @@ io::Output& operator<<(io::Output& out, const Buffer& buf) {
 				out << "  ";
 		}
 		out << ' ';
-		for(int j = 0; j < 8; j++) {
+		for(size_t j = 0; j < 8; j++) {
 			if(i + j < buf.size() ) {
 				t::uint8 c;
 				buf.get(i + j, c);

@@ -154,7 +154,7 @@ io::Output& operator<<(io::Output& out, const Buffer& buf);
 class Cursor {
 public:
 	inline Cursor(void): off(0) { }
-	inline Cursor(const Buffer& b): buf(b), off(0) { }
+	inline Cursor(const Buffer& b): off(0), buf(b) { }
 	inline Decoder *decoder(void) const { return buf.decoder(); }
 
 	inline bool ended(void) const { return off >= buf.size(); }
@@ -183,7 +183,7 @@ public:
 	inline bool read(t::int64& v)
 		{ if(!avail(sizeof(t::int64))) return false; buf.get(off, v); off += sizeof(t::int64); return true; }
 	bool read(cstring& s);
-	inline bool read(string& s) { cstring r; read(r); s = string(r); }
+	inline bool read(string& s) { cstring r; read(r); s = string(r); return true; }
 	bool read(size_t size, const t::uint8 *& buf);
 
 	inline bool write(t::uint8 v)

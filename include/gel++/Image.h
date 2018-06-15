@@ -20,6 +20,7 @@
 #define GELPP_IMAGE_H_
 
 #include <elm/data/BiDiList.h>
+#include <elm/util/ErrorHandler.h>
 #include <gel++/base.h>
 #include <gel++/File.h>
 
@@ -111,7 +112,7 @@ public:
 	ImageSegment **sp_segment;
 };
 
-class ImageBuilder {
+class ImageBuilder: public ErrorBase {
 public:
 	ImageBuilder(File *file, const Parameter& params = Parameter::null) throw(gel::Exception);
 	virtual ~ImageBuilder(void);

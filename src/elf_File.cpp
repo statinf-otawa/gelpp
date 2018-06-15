@@ -92,8 +92,8 @@ void File::unfix(t::int64& i)	{ i = UN_ENDIAN8(h->e_ident[EI_DATA], i); }
  */
 File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception)
 :	gel::File(manager, path),
-	s(stream),
 	h(new Elf32_Ehdr),
+	s(stream),
 	sec_buf(0),
 	str_tab(0),
 	ph_buf(0),
@@ -208,7 +208,7 @@ cstring File::stringAt(t::uint32 offset) throw(gel::Exception) {
  * @param size	Size of the buffer.
  */
 void File::read(void *buf, t::uint32 size) throw(Exception) {
-	if(s->read(buf, size) != size)
+	if(t::uint32(s->read(buf, size)) != size)
 		throw Exception(_ << "cannot read " << size << " bytes from " << path() << ": " << s->io::InStream::lastErrorMessage());
 }
 
@@ -272,8 +272,6 @@ address_t File::entry(void) {
 /**
  */
 Image *File::make(const Parameter& params) throw(Exception) {
-	/*SimpleBuilder builder(this, params);
-	return builder.build();*/
 	UnixBuilder builder(this, params);
 	return builder.build();
 }
