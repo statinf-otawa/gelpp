@@ -61,7 +61,7 @@ public:
 					if(sect->info().sh_type == SHT_SYMTAB || sect->info().sh_type == SHT_DYNAMIC) {
 						cout << "SECTION " << sect->name() << io::endl;
 						cout << "st_value st_size  binding type    st_shndx         name\n";
-						for(elf::SymbolIter sym(*f, *sect); sym; sym++)
+						for(elf::SymbolIter sym(*f, *sect); sym(); sym++)
 							cout <<	word_fmt((*sym).st_value)						<< ' '
 								 << word_fmt((*sym).st_size) 						<< ' '
 								 << io::fmt(get_binding(*sym)).width(7)				<< ' '

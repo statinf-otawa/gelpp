@@ -47,7 +47,7 @@ public:
 			_name = "unknown";
 	}
 
-	virtual cstring name(void) throw(Exception) { return _name; }
+	virtual cstring name(void) { return _name; }
 	virtual address_t baseAddress(void) { return _head->info().p_vaddr; }
 	virtual address_t loadAddress(void) { return _head->info().p_paddr; }
 	virtual size_t size(void) { return _head->info().p_memsz; }
@@ -55,7 +55,7 @@ public:
 	virtual bool isExecutable(void) { return _head->info().p_flags & PF_X; }
 	virtual bool isWritable(void)  { return _head->info().p_flags & PF_W; }
 	virtual bool hasContent(void) { return true; }
-	virtual Buffer buffer(void) throw(Exception) { return _head->content(); }
+	virtual Buffer buffer(void) { return _head->content(); }
 
 private:
 	cstring _name;
@@ -90,7 +90,7 @@ void File::unfix(t::int64& i)	{ i = UN_ENDIAN8(h->e_ident[EI_DATA], i); }
  * @param path		File path.
  * @param stream	Stream to read from.
  */
-File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception)
+File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream)
 :	gel::File(manager, path),
 	h(new Elf32_Ehdr),
 	s(stream),
@@ -138,14 +138,14 @@ File::~File(void) {
  * Get the map of symbols of the file.
  * @return	Map of symbols.
  */
-const File::SymbolMap& File::symbols(void) throw(Exception) {
+const File::SymbolMap& File::symbols(void) {
 	if(!syms) {
 		syms = new SymbolMap();
 		sections();
 		for(int i = 0; i < sects.count(); i++) {
 			Section *s = sects[i];
 			if(s->info().sh_type == SHT_SYMTAB || s->info().sh_type == SHT_DYNSYM)
-				for(SymbolIter sym(*this, *s); sym; sym++)
+				for(SymbolIter sym(*this, *s); sym(); sym++)
 					syms->put(sym.name(), &*sym);
 		}
 	}
@@ -157,7 +157,7 @@ const File::SymbolMap& File::symbols(void) throw(Exception) {
  * @return	Program headers.
  * @throw gel::Exception	If there is a file read error.
  */
-Vector<ProgramHeader>& File::programHeaders(void) throw(gel::Exception) {
+Vector<ProgramHeader>& File::programHeaders(void) {
 	if(!ph_buf) {
 
 		// load it
@@ -188,7 +188,7 @@ Vector<ProgramHeader>& File::programHeaders(void) throw(gel::Exception) {
  * @return			Found string.
  * @throw gel::Exception	If there is a file read error or offset is out of bound.
  */
-cstring File::stringAt(t::uint32 offset) throw(gel::Exception) {
+cstring File::stringAt(t::uint32 offset) {
 	if(!str_tab) {
 		if(h->e_shstrndx >= sections().length())
 			throw gel::Exception(_ << "strtab index out of bound");
@@ -207,7 +207,7 @@ cstring File::stringAt(t::uint32 offset) throw(gel::Exception) {
  * @param buf	Buffer to fill in.
  * @param size	Size of the buffer.
  */
-void File::read(void *buf, t::uint32 size) throw(Exception) {
+void File::read(void *buf, t::uint32 size) {
 	if(t::uint32(s->read(buf, size)) != size)
 		throw Exception(_ << "cannot read " << size << " bytes from " << path() << ": " << s->io::InStream::lastErrorMessage());
 }
@@ -219,7 +219,7 @@ void File::read(void *buf, t::uint32 size) throw(Exception) {
  * @param buf	Buffer to fill in.
  * @param size	Size of the buffer.
  */
-void File::readAt(t::uint32 pos, void *buf, t::uint32 size) throw(Exception) {
+void File::readAt(t::uint32 pos, void *buf, t::uint32 size) {
 	if(!s->moveTo(pos))
 		throw Exception(_ << "cannot move to position " << pos << " in " << path() << ": " << s->io::InStream::lastErrorMessage());
 	read(buf, size);
@@ -271,7 +271,7 @@ address_t File::entry(void) {
 
 /**
  */
-Image *File::make(const Parameter& params) throw(Exception) {
+Image *File::make(const Parameter& params) {
 	UnixBuilder builder(this, params);
 	return builder.build();
 }
@@ -336,7 +336,7 @@ void File::initSections(void) {
  * @return	File sections.
  * @throw gel::Exception 	If there is an error when file is read.
  */
-Vector<Section *>& File::sections(void) throw(gel::Exception) {
+Vector<Section *>& File::sections(void) {
 	if(!sec_buf)
 		initSections();
 	return sects;
@@ -373,7 +373,7 @@ Section::~Section(void) {
  * @return	Section content.
  * @throw gel::Exception	If there is a file read error.
  */
-Buffer Section::content(void) throw(gel::Exception) {
+Buffer Section::content(void) {
 	if(!buf) {
 
 		// read the data
@@ -403,7 +403,7 @@ Buffer Section::content(void) throw(gel::Exception) {
  * @return	Section name.
  * @throw gel::Exception	If there is an error during file read.
  */
-cstring Section::name(void) throw(gel::Exception) {
+cstring Section::name(void) {
 	return _file->stringAt(_info->sh_name);
 }
 
@@ -456,7 +456,7 @@ bool Section::hasContent(void) {
 
 /**
  */
-Buffer Section::buffer(void) throw(Exception)  {
+Buffer Section::buffer(void) {
 	return content();
 }
 
@@ -496,7 +496,7 @@ ProgramHeader::~ProgramHeader(void) {
  * @return	Program header contant.
  * @throw gel::Exception	If there is an error at file read.
  */
-Buffer ProgramHeader::content(void) throw(gel::Exception) {
+Buffer ProgramHeader::content(void) {
 	if(!_buf) {
 		_buf = new t::uint8[_info->p_memsz];
 		if(_info->p_filesz)
@@ -523,7 +523,7 @@ Buffer ProgramHeader::content(void) throw(gel::Exception) {
 
 /**
  */
-NoteIter::NoteIter(ProgramHeader& ph) throw(Exception): c(ph.content()) {
+NoteIter::NoteIter(ProgramHeader& ph): c(ph.content()) {
 	ASSERT(ph.info().p_type == PT_NOTE);
 	next();
 }
@@ -531,7 +531,7 @@ NoteIter::NoteIter(ProgramHeader& ph) throw(Exception): c(ph.content()) {
 /**
  * Read the next note.
  */
-void NoteIter::next(void) throw(Exception) {
+void NoteIter::next(void) {
 
 	// end reached
 	if(c.ended()) {
@@ -596,7 +596,7 @@ void NoteIter::next(void) throw(Exception) {
 
 /**
  */
-SymbolIter::SymbolIter(File& file, Section& section) throw(Exception): f(file), s(section), c(section.content()) {
+SymbolIter::SymbolIter(File& file, Section& section): f(file), s(section), c(section.content()) {
 	ASSERT(section.info().sh_type == SHT_SYMTAB || section.info().sh_type == SHT_DYNSYM);
 }
 
@@ -620,7 +620,7 @@ void SymbolIter::next(void) {
 /**
  * Get name of the symbol.
  */
-cstring SymbolIter::name(void) throw(Exception) {
+cstring SymbolIter::name(void) {
 	if(names.isNull()) {
 
 		// find string section number

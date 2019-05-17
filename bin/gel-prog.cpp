@@ -159,7 +159,7 @@ private:
 	 * Display a note program header.
 	 * @param phdr	Program header to process.
 	 */
-	void print_note(elf::ProgramHeader& ph) throw(gel::Exception) {
+	void print_note(elf::ProgramHeader& ph) {
 		for(elf::NoteIter note(ph); note; note++) {
 			cout << "NOTE " << note.name() << ": " << note.type() << io::endl;
 			Buffer buf(ph.decoder(), note.desc(), note.descsz());

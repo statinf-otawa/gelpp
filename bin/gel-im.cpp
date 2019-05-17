@@ -64,7 +64,7 @@ public:
 				Image *im = f->make(params);
 
 				// display all segments
-				for(Image::SegIter seg = im->segments(); seg; seg++) {
+				for(Image::SegIter seg = im->segments(); seg(); seg++) {
 					cout << "BLOCK " << seg->name() << " @ " << f->format(seg->base())
 						 << " (" << io::hex(seg->size()) << ")";
 					if(seg->isWritable())

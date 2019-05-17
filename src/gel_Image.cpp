@@ -53,6 +53,27 @@ ImageSegment::ImageSegment(Buffer buf, address_t addr, flags_t flags, cstring na
 }
 
 /**
+ * Build an image segment from a file and a buffer.
+ * @param file		File containing the segment.
+ * @param buf		Buffer providing content of the segment.
+ * @param addr		Address in the image of the segment.
+ * @param flags		Flags of the segment.
+ * @parma name		Optional symbolic name.
+ */
+ImageSegment::ImageSegment(File *file, Buffer buf, address_t addr, flags_t flags, cstring name)
+	:	_name(name),
+		_file(file),
+		_seg(0),
+		_base(addr),
+		_buf(buf),
+		_flags(flags)
+{
+	if(!_name)
+		_name = defaultName(flags);
+}
+
+
+/**
  * Build an image segment from a file segment.
  * @param file		Owner file.
  * @param segment	Segment to build image.
@@ -318,9 +339,9 @@ void Image::add(ImageSegment *segment) {
  * @return			Found segment or null.
  */
 ImageSegment *Image::at(address_t address) {
-	for(SegIter s = segments(); s; s++)
+	for(SegIter s = segments(); s(); s++)
 		if(s->range().contains(address))
-			return s;
+			return *s;
 	return null<ImageSegment>();
 }
 
@@ -331,13 +352,13 @@ ImageSegment *Image::at(address_t address) {
 void Image::clean(void) {
 
 	// remove files
-	for(LinkIter l = files(); l; l++)
+	for(LinkIter l = files(); l(); l++)
 		if((*l).file != _prog)
 			delete (*l).file;
 	_links.clear();
 
 	// clean segments
-	for(SegIter s = segments(); s; s++)
+	for(SegIter s = segments(); s(); s++)
 		if(s->file() != _prog)
 			s->clean();
 }
@@ -358,7 +379,7 @@ void Image::clean(void) {
  * @param params			Parameters to use.
  * @throw gel::Exception	In case of error.
  */
-ImageBuilder::ImageBuilder(File *file, const Parameter& params) throw(gel::Exception)
+ImageBuilder::ImageBuilder(File *file, const Parameter& params)
 : _prog(file), _params(params) {
 
 }
@@ -399,13 +420,13 @@ ImageBuilder::~ImageBuilder(void) {
  * @param params			Image parameters.
  * @throw gel::Excpetion	In case of error.
  */
-SimpleBuilder::SimpleBuilder(File *file, const Parameter& params) throw(gel::Exception)
+SimpleBuilder::SimpleBuilder(File *file, const Parameter& params)
 : ImageBuilder(file, params) {
 }
 
 /**
  */
-Image *SimpleBuilder::build(void) throw(gel::Exception) {
+Image *SimpleBuilder::build(void) {
 	Image *im = new Image(_prog);
 	for(int i = 0; i < _prog->count(); i++) {
 		Segment *seg = _prog->segment(i);
@@ -416,7 +437,7 @@ Image *SimpleBuilder::build(void) throw(gel::Exception) {
 
 /**
  */
-File *SimpleBuilder::retrieve(string name) throw(gel::Exception) {
+File *SimpleBuilder::retrieve(string name) {
 	throw MessageException(_ << "cannot find " << name);
 }
 

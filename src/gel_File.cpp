@@ -173,7 +173,7 @@ elf::File *File::toELF(void) {
  * using the default image builder of the file type. For ELF file,
  * the Unix image builder is used.
  */
-Image *File::make(void) throw(Exception) {
+Image *File::make(void) {
 	return make(Parameter::null);
 }
 

@@ -34,12 +34,12 @@ namespace elf { class File; }
 
 class Manager: public ErrorBase {
 public:
-	inline static File *open(sys::Path path) throw(gel::Exception) { return DEFAULT.openFile(path); }
-	inline static elf::File *openELF(sys::Path path) throw(gel::Exception) { return DEFAULT.openELFFile(path); }
+	inline static File *open(sys::Path path) { return DEFAULT.openFile(path); }
+	inline static elf::File *openELF(sys::Path path) { return DEFAULT.openELFFile(path); }
 
 	static Manager DEFAULT;
-	File *openFile(sys::Path path) throw(gel::Exception);
-	elf::File *openELFFile(sys::Path path) throw(gel::Exception);
+	File *openFile(sys::Path path);
+	elf::File *openELFFile(sys::Path path);
 };
 
 }	// gel

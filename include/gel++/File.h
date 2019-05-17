@@ -35,7 +35,7 @@ namespace elf { class File; }
 class Segment {
 public:
 	virtual ~Segment(void);
-	virtual cstring name(void) throw(Exception) = 0;
+	virtual cstring name(void) = 0;
 	virtual address_t baseAddress(void) = 0;
 	virtual address_t loadAddress(void) = 0;
 	virtual size_t size(void) = 0;
@@ -43,7 +43,7 @@ public:
 	virtual bool isExecutable(void) = 0;
 	virtual bool isWritable(void) = 0;
 	virtual bool hasContent(void) = 0;
-	virtual Buffer buffer(void) throw(Exception) = 0;
+	virtual Buffer buffer(void) = 0;
 };
 
 class File {
@@ -69,8 +69,8 @@ public:
 	virtual address_t entry(void) = 0;
 	virtual int count(void) = 0;
 	virtual Segment *segment(int i) = 0;
-	virtual Image *make(void) throw(Exception);
-	virtual Image *make(const Parameter& params) throw(Exception) = 0;
+	virtual Image *make(void);
+	virtual Image *make(const Parameter& params) = 0;
 
 protected:
 	Manager& man;

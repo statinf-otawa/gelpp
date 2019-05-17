@@ -35,7 +35,7 @@ public:
 	~ProgramHeader(void);
 
 	inline const Elf32_Phdr& info(void) const { return *_info; }
-	Buffer content(void) throw(gel::Exception);
+	Buffer content(void);
 	inline bool contains(address_t a) const { return _info->p_vaddr <= a && a < _info->p_vaddr + _info->p_memsz; }
 	inline Decoder *decoder(void) const;
 
@@ -50,9 +50,9 @@ public:
 	Section(void);
 	Section(elf::File *file, Elf32_Shdr *entry);
 	virtual ~Section(void);
-	cstring name(void) throw(gel::Exception);
+	cstring name(void);
 	const Elf32_Shdr& info(void) { return *_info; }
-	Buffer content(void) throw(gel::Exception);
+	Buffer content(void);
 	inline bool contains(address_t a) const
 		{ return (_info->sh_flags & SHF_ALLOC) && _info->sh_addr <= a && a < _info->sh_addr + _info->sh_size; }
 
@@ -64,7 +64,7 @@ public:
 	virtual bool isExecutable(void);
 	virtual bool isWritable(void);
 	virtual bool hasContent(void);
-	virtual Buffer buffer(void) throw(gel::Exception);
+	virtual Buffer buffer(void);
 
 private:
 	elf::File *_file;
@@ -79,23 +79,23 @@ class File: public gel::File, public Decoder {
 	friend class Section;
 	friend class Segment;
 public:
-	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream) throw(Exception);
+	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream);
 	virtual ~File(void);
 
 	const Elf32_Ehdr& info(void) const { return *h; }
 	typedef Vector<Section *>::Iter SecIter;
-	Vector<Section *>& sections(void) throw(gel::Exception);
+	Vector<Section *>& sections(void);
 	inline Section *sectionAt(int i) const { return sects[i]; }
 	inline int sectionCount(void) const { return sects.count(); }
 	typedef Vector<ProgramHeader>::Iter ProgIter;
-	Vector<ProgramHeader>& programHeaders(void) throw(gel::Exception);
+	Vector<ProgramHeader>& programHeaders(void);
 	inline ProgramHeader headerAt(int i) const { return phs[i]; }
 	inline int headerCount(void) const { return phs.count(); }
 
-	cstring stringAt(t::uint32 offset) throw(gel::Exception);
+	cstring stringAt(t::uint32 offset);
 
 	typedef HashMap<cstring, const Elf32_Sym *> SymbolMap;
-	const SymbolMap& symbols(void) throw(Exception);
+	const SymbolMap& symbols(void);
 
 	// gel::File overload
 	virtual File *toELF(void);
@@ -103,14 +103,14 @@ public:
 	virtual bool isBigEndian(void);
 	virtual address_type_t addressType(void);
 	virtual address_t entry(void);
-	virtual Image *make(const Parameter& params) throw(Exception);
+	virtual Image *make(const Parameter& params);
 	virtual int count(void);
 	virtual gel::Segment *segment(int i);
 
 private:
 	void initSections(void);
-	void read(void *buf, t::uint32 size) throw(Exception);
-	void readAt(t::uint32 pos, void *buf, t::uint32 size) throw(Exception);
+	void read(void *buf, t::uint32 size);
+	void readAt(t::uint32 pos, void *buf, t::uint32 size);
 
 	virtual void fix(t::uint16& i);
 	virtual void fix(t::int16& i);
@@ -139,9 +139,9 @@ private:
 
 class NoteIter {
 public:
-	NoteIter(ProgramHeader& ph) throw(Exception);
+	NoteIter(ProgramHeader& ph);
 	inline bool ended(void) const { return !_desc; }
-	void next(void) throw(Exception);
+	void next(void);
 	inline operator bool(void) const { return !ended(); }
 	inline NoteIter& operator++(void) { next(); return *this; }
 	inline NoteIter& operator++(int) { next(); return *this; }
@@ -163,11 +163,11 @@ inline Decoder *ProgramHeader::decoder(void) const { return _file; }
 
 class SymbolIter: public PreIterator<SymbolIter, const Elf32_Sym& > {
 public:
-	SymbolIter(File& file, Section& section) throw(Exception);
+	SymbolIter(File& file, Section& section);
 	inline bool ended(void) const { return c.ended(); }
 	inline const Elf32_Sym& item(void) const { return *(const Elf32_Sym *)c.here(); }
 	void next(void);
-	cstring name(void) throw(Exception);
+	cstring name(void);
 
 private:
 	File& f;

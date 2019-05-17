@@ -45,7 +45,7 @@ Manager Manager::DEFAULT;
  * @return					Open file.
  * @throw gel::Exception	If there is an error.
  */
-File *Manager::openFile(sys::Path path) throw(gel::Exception) {
+File *Manager::openFile(sys::Path path) {
 	try {
 		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
 
@@ -77,7 +77,7 @@ File *Manager::openFile(sys::Path path) throw(gel::Exception) {
  * @return					Open file.
  * @throw gel::Exception	If there is an error.
  */
-elf::File *Manager::openELFFile(sys::Path path) throw(gel::Exception) {
+elf::File *Manager::openELFFile(sys::Path path) {
 	try {
 		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
 		return new elf::File(*this, path, s);

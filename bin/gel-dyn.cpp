@@ -80,7 +80,7 @@ protected:
 
 private:
 
-	void processELF(elf::File *file) throw(gel::Exception) {
+	void processELF(elf::File *file) {
 		static const int width = 16;
 		static cstring labels[] = {
 			"NULL",
@@ -124,7 +124,7 @@ private:
 		elf::ArchPlugin *plug = elf::ArchPlugin::plug(file->info().e_machine);
 
 		// look all sections
-		for(elf::File::SecIter s = file->sections(); s; s++)
+		for(elf::File::SecIter s = file->sections(); s(); s++)
 
 			// display the dynamics
 			if(s->info().sh_type == SHT_DYNAMIC) {

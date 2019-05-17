@@ -35,9 +35,11 @@ public:
 	static const flags_t
 		WRITABLE	= 0x01,
 		EXECUTABLE	= 0x02,
-		TO_FREE		= 0x04;
+		READABLE	= 0x04,
+		TO_FREE		= 0x08;
 
 	ImageSegment(Buffer buf, address_t addr, flags_t flags, cstring name = "");
+	ImageSegment(File *file, Buffer buf, address_t addr, flags_t flags, cstring name = "");
 	ImageSegment(File *file, Segment *segment, address_t addr, cstring name = "");
 	~ImageSegment(void);
 	void clean(void);
@@ -52,6 +54,7 @@ public:
 	inline flags_t flags(void) const { return _flags; }
 	inline bool isWritable(void) const { return _flags & WRITABLE; }
 	inline bool isExecutable(void) const { return _flags & EXECUTABLE; }
+	inline bool isReadable(void) const { return _flags & READABLE; }
 
 private:
 	static cstring defaultName(flags_t flags);
@@ -114,10 +117,10 @@ public:
 
 class ImageBuilder: public ErrorBase {
 public:
-	ImageBuilder(File *file, const Parameter& params = Parameter::null) throw(gel::Exception);
+	ImageBuilder(File *file, const Parameter& params = Parameter::null);
 	virtual ~ImageBuilder(void);
-	virtual Image *build(void) throw(gel::Exception) = 0;
-	virtual File *retrieve(string name) throw(gel::Exception) = 0;
+	virtual Image *build(void) = 0;
+	virtual File *retrieve(string name) = 0;
 protected:
 	File *_prog;
 	const Parameter& _params;
@@ -125,9 +128,9 @@ protected:
 
 class SimpleBuilder: public ImageBuilder {
 public:
-	SimpleBuilder(File *file, const Parameter& params = Parameter::null) throw(gel::Exception);
-	virtual Image *build(void) throw(gel::Exception);
-	virtual File *retrieve(string name) throw(gel::Exception);
+	SimpleBuilder(File *file, const Parameter& params = Parameter::null);
+	virtual Image *build(void);
+	virtual File *retrieve(string name);
 };
 
 } // gel

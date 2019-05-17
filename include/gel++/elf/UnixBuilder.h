@@ -25,6 +25,58 @@
 
 namespace gel { namespace elf {
 
+class UnixBuilder;
+
+class Unit {
+	friend class UnixBuilder;
+public:
+	static const t::uint32
+		SYMBOLIC	= 0x01,
+		TEXTREL		= 0x02,
+		BIND_NOW	= 04;
+
+	Unit(cstring name);
+	Unit(File *file);
+	inline File *file(void) const { return _file; }
+	t::uint32 base(void) const { return _base; }
+	inline cstring name(void) const { return _name; }
+
+	t::uint32 pltrelsz = 0;
+	t::uint32 pltgot = 0;
+	t::uint32 hash = 0;
+	t::uint32 strtab = 0;
+	t::uint32 symtab = 0;
+	t::uint32 rela = 0;
+	t::uint32 relasz = 0;
+	t::uint32 relaent = 0;
+	t::uint32 strsz = 0;
+	t::uint32 syment = 0;
+	t::uint32 init = 0;
+	t::uint32 fini = 0;
+	t::uint32 rel = 0;
+	t::uint32 relsz = 0;
+	t::uint32 relent = 0;
+	t::uint32 pltrel = 0;
+	t::uint32 debug = 0;
+	t::uint32 textrel = 0;
+	t::uint32 jmprel = 0;
+	t::uint32 flags = 0;
+
+protected:
+	cstring getString(ImageSegment *s, t::uint32 off);
+private:
+	t::uint32 load(UnixBuilder& builder, t::uint32 base);
+	void link(UnixBuilder& builder);
+
+	cstring _name;
+	File *_file;
+	t::uint32 _base;
+	Vector<Unit *> _needed;
+	HashMap<cstring, Elf32_Sym *> _map;
+	ProgramHeader *_dyn;
+};
+
+
 class Auxiliary {
 public:
 	inline Auxiliary(t::uint32 t = 0, t::uint32 v = 0): type(t), val(v) { }
@@ -41,21 +93,24 @@ public:
 };
 
 class UnixBuilder: public ImageBuilder {
+	friend class Unit;
 public:
-	UnixBuilder(File *file, const Parameter& param = UnixParameter::null) throw(gel::Exception);
-	virtual Image *build(void) throw(gel::Exception);
-	virtual gel::File *retrieve(string name) throw(gel::Exception);
+	UnixBuilder(File *file, const Parameter& param = UnixParameter::null);
+	virtual Image *build(void);
+protected:
+	virtual gel::File *retrieve(string name);
 private:
-	ImageSegment *buildStack(void) throw(gel::Exception);
-	void resolveLibs(File *file) throw(gel::Exception);
-	address_t load(File *file, address_t base) throw(gel::Exception);
+	Unit *get(cstring name);
+	ImageSegment *buildStack(void);
+	void link(File *file, address_t base);
 	File *open(sys::Path path);
+	void addRPath(string paths);
 
 	elf::File *_prog;
 	const UnixParameter *_uparams;
-	HashMap<string, File *> _libs;
+	HashMap<string, Unit *> _units;
 	Image *_im;
-	VectorQueue<File *> todo;
+	Vector<Unit *> todo;
 	Vector<sys::Path> lpaths;
 };
 
