@@ -220,6 +220,22 @@ cstring Parameter::abi(void) const {
 	return gen_abi;
 }
 
+
+/**
+ * Get an environment variable value from the current parameters.
+ * @param name	Name of the variable.
+ */
+cstring Parameter::getenv(cstring name) const {
+	int l = name.length();
+	for(auto e: env)
+		if(e.startsWith(name)
+		&& e.length() >= l + 1
+		&& e[l] == '=')
+			return e.substring(l + 1);
+	return "";
+}
+
+
 /**
  * @var Array<cstring> Parameter::arg;
  * The list of command line arguments passed to the program,
@@ -399,7 +415,7 @@ ImageBuilder::~ImageBuilder(void) {
  */
 
 /**
- * @fn File *ImageBuilder::retrieve(string name) throw(gel::Exception);
+ * @fn File *ImageBuilder::retrieve(sys::Path name) throw(gel::Exception);
  * Retrie a dynamic library by its name.
  * @param name				Name of looked library.
  * @return					Corresponding file.
@@ -415,7 +431,7 @@ ImageBuilder::~ImageBuilder(void) {
  */
 
 /**
- * Construct a simple builder.
+ * Basic constructor.
  * @param file				File used as a program.
  * @param params			Image parameters.
  * @throw gel::Excpetion	In case of error.
@@ -437,7 +453,7 @@ Image *SimpleBuilder::build(void) {
 
 /**
  */
-File *SimpleBuilder::retrieve(string name) {
+File *SimpleBuilder::retrieve(sys::Path name) {
 	throw MessageException(_ << "cannot find " << name);
 }
 

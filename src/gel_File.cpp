@@ -110,11 +110,20 @@ File::~File(void) {
 
 
 /**
- * If the file is of type ELF, return handler on it.
+ * If the file is of type ELF 32-bit, return handler on it.
  * @return	ELF file handler or null.
  */
-elf::File *File::toELF(void) {
-	return 0;
+elf::File *File::toELF() {
+	return nullptr;
+}
+
+
+/**
+ * If the file is of type ELF 64-bit, return handler on it.
+ * @return	ELF file handler or null.
+ */
+elf::File64 *File::toELF64() {
+	return nullptr;
 }
 
 

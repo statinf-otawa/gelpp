@@ -20,58 +20,18 @@
 #define GEL_ELF_DEFS_H
 
 #include <elm/types.h>
+#include "common.h"
 #include "../config.h"
 
 namespace gel { namespace elf {
 
 using namespace elm;
 
-#define ET_NONE		0
-#define ET_REL 		1
-#define ET_EXEC 	2
-#define ET_DYN 		3
-#define ET_CORE 	4
-
- typedef t::uint32 Elf32_Addr;
- typedef t::uint16 Elf32_Half;
- typedef t::uint32 Elf32_Off;
- typedef t::int32  Elf32_Sword;
- typedef t::uint32 Elf32_Word;
-
-/* ELF header identification */
-#define	EI_MAG0		0
-#define EI_MAG1		1
-#define EI_MAG2		2
-#define EI_MAG3		3
-#define EI_CLASS	4
-#define EI_DATA		5
-#define EI_VERSION	6
-#define EI_PAD		7
-#define EI_OSABI	7
-#define EI_NIDENT	16
-
- /* ELF identification */
-#define	ELFMAG0 0x7f
-#define ELFMAG1 'E'
-#define	ELFMAG2 'L'
-#define ELFMAG3 'F'
-
-/* File classes */
-#define	ELFCLASSNONE	0
-#define	ELFCLASS32		1
-#define	ELFCLASS64		2
-
-
-/* File data encoding */
-#define ELFDATANONE	0
-#define ELFDATA2LSB	1
-#define ELFDATA2MSB 2
-
-
-/* Versions */
-#define EV_NONE		0
-#define EV_CURRENT	1
-
+typedef t::uint32 Elf32_Addr;
+typedef t::uint16 Elf32_Half;
+typedef t::uint32 Elf32_Off;
+typedef t::int32  Elf32_Sword;
+typedef t::uint32 Elf32_Word;
 
  /* auxiliairy vector types */
  #define AT_NULL			0
@@ -119,30 +79,6 @@ typedef struct Elf32_Shdr {
         Elf32_Word sh_addralign;
         Elf32_Word sh_entsize;
 } Elf32_Shdr;
-
-/* sh_type */
-#define SHT_NULL 0
-#define SHT_PROGBITS 1
-#define SHT_SYMTAB 2
-#define SHT_STRTAB 3
-#define SHT_RELA 4
-#define SHT_HASH 5
-#define SHT_DYNAMIC 6
-#define SHT_NOTE 7
-#define SHT_NOBITS 8
-#define SHT_REL 9
-#define SHT_SHLIB 10
-#define SHT_DYNSYM 11
-#define SHT_LOPROC 0x70000000
-#define SHT_HIPROC 0x7fffffff
-#define SHT_LOUSER 0x80000000
-#define SHT_HIUSER 0xffffffff
-
-/* sh_flags */
-#define SHF_WRITE		0x00000001
-#define SHF_ALLOC		0x00000002
-#define SHF_EXECINSTR	0x00000004
-#define SHF_MASKPROC	0xf0000000
 
 /**
  * Elf file structure of a program header.
@@ -210,13 +146,6 @@ typedef struct Elf32_Phdr {
 #define DF_STATIC_TLS	0x00000010
 
 
-/* Elf32_Phdr p_flags */
-#define PF_X		(1 << 0)
-#define PF_W		(1 << 1)
-#define PF_R		(1 << 2)
-#define PF_MASKOS	0x0ff00000
-#define PF_MASKPROC	0xf0000000
-
 /* Legal values for note segment descriptor types for core files. */
 typedef struct Elf32_Dyn {
   Elf32_Sword d_tag;
@@ -241,28 +170,6 @@ typedef struct Elf32_Sym {
 #define ELF32_ST_TYPE(i) ((i) & 0xf)
 #define ELF32_ST_INFO(b,t) (((b)<<4)+((t)&0xf))
 
-#define STB_LOCAL 0
-#define STB_GLOBAL 1
-#define STB_WEAK 2
-
-#define STT_NOTYPE 0
-#define STT_OBJECT 1
-#define STT_FUNC 2
-#define STT_SECTION 3
-#define STT_FILE 4
-
-
-#define PT_NULL 0
-#define PT_LOAD 1
-#define PT_DYNAMIC 2
-#define PT_INTERP 3
-#define PT_NOTE 4
-#define PT_SHLIB 5
-#define PT_PHDR 6
-#define PT_LOPROC 0x70000000
-#define PT_HIPROC 0x7fffffff
-
-
 typedef struct Elf32_Rel {
 	Elf32_Addr r_offset;
 	Elf32_Word r_info;
@@ -277,30 +184,6 @@ typedef struct Elf32_Rela {
 #define ELF32_R_SYM(i) ((i)>>8)
 #define ELF32_R_TYPE(i) ((unsigned char)(i))
 #define ELF32_R_INFO(s,t) (((s)<<8)+(unsigned char)(t))
-
-#define SHN_UNDEF 0
-#define SHN_LORESERVE 0x0000FF00
-#define SHN_HIRESERVE 0x0000FFFF
-#define SHN_ABS 0x0000FFF1
-#define SHN_COMMON 0x0000FFF2
-
-// useful macros
-#define SWAP2(x) ((((x) & 0xFF) << 8) | (((x) & 0xFF00 ) >> 8))
-#define SWAP4(x) ((((SWAP2((x) & 0xFFFF))) << 16) | SWAP2(((x) & 0xFFFF0000) >> 16))
-#define SWAP8(x) (((SWAP4((x) & 0xFFFFFFFF)) << 32) | SWAP4(((x) >> 32) & 0xFFFFFFFF))
-
-#ifdef BIGENDIAN
-#define ENDIAN2(e,v) (((e) == ELFDATA2MSB) ? (v) : SWAP2(v))
-#define ENDIAN4(e,v) (((e) == ELFDATA2MSB) ? (v) : SWAP4(v))
-#define ENDIAN8(e,v) (((e) == ELFDATA2MSB) ? (v) : SWAP8(v))
-#else
-#define ENDIAN2(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP2(v))
-#define ENDIAN4(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP4(v))
-#define ENDIAN8(e,v) (((e) == ELFDATA2LSB) ? (v) : SWAP8(v))
-#endif
-#define UN_ENDIAN2(e, v)	ENDIAN2(e, v)
-#define UN_ENDIAN4(e, v)	ENDIAN4(e, v)
-#define UN_ENDIAN8(e, v)	ENDIAN8(e, v)
 
 } }		// gel::elf
 

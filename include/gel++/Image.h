@@ -104,6 +104,7 @@ public:
 	Parameter(void);
 	virtual ~Parameter(void);
 	virtual cstring abi(void) const;
+	cstring getenv(cstring name) const;
 
 	Array<cstring> arg;
 	Array<cstring> env;
@@ -120,7 +121,7 @@ public:
 	ImageBuilder(File *file, const Parameter& params = Parameter::null);
 	virtual ~ImageBuilder(void);
 	virtual Image *build(void) = 0;
-	virtual File *retrieve(string name) = 0;
+	virtual File *retrieve(sys::Path name) = 0;
 protected:
 	File *_prog;
 	const Parameter& _params;
@@ -129,8 +130,8 @@ protected:
 class SimpleBuilder: public ImageBuilder {
 public:
 	SimpleBuilder(File *file, const Parameter& params = Parameter::null);
-	virtual Image *build(void);
-	virtual File *retrieve(string name);
+	Image *build(void) override;
+	File *retrieve(sys::Path name) override;
 };
 
 } // gel

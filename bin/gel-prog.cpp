@@ -68,28 +68,29 @@ public:
 							"p_flags\n";
 
 				// display program headers
-				Vector<elf::ProgramHeader> phs = f->programHeaders();
-				for(int j = 0; j < phs.count(); j++) {
-					const elf::Elf32_Phdr &ph = phs[j].info();
+				int j = 0;
+				for(auto ph: f->programHeaders()) {
 
 					// display notes
 					if(note) {
-						if(ph.p_type == PT_NOTE)
-							print_note(phs[j]);
+						if(ph->type() == PT_NOTE)
+							print_note(*ph);
 					}
 
 					// display header itself
 					else {
 						cout << io::fmt(j).width(5).right() << ' ';
-						print_type(ph.p_type);
-						cout << word_fmt(ph.p_offset) << ' ';
-						cout << word_fmt(ph.p_vaddr) << ' ';
-						cout << word_fmt(ph.p_paddr) << ' ';
-						cout << word_fmt(ph.p_filesz) << ' ';
-						cout << word_fmt(ph.p_memsz) << ' ';
-						cout << word_fmt(ph.p_align) << ' ';
-						print_flags(ph.p_flags);
+						print_type(ph->type());
+						cout << word_fmt(ph->offset()) << ' ';
+						cout << word_fmt(ph->vaddr()) << ' ';
+						cout << word_fmt(ph->paddr()) << ' ';
+						cout << word_fmt(ph->filesz()) << ' ';
+						cout << word_fmt(ph->memsz()) << ' ';
+						cout << word_fmt(ph->align()) << ' ';
+						print_flags(ph->flags());
 					}
+
+					j++;
 				}
 
 				delete f;

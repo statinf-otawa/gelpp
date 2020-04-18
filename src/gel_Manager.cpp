@@ -21,7 +21,9 @@
 #include <elm/sys/System.h>
 #include <gel++.h>
 #include <gel++/elf/defs.h>
-#include <gel++/elf/File.h>
+#include <gel++/elf/File32.h>
+#include <gel++/elf/File64.h>
+#include <gel++/elf/common.h>
 
 namespace gel {
 
@@ -50,14 +52,23 @@ File *Manager::openFile(sys::Path path) {
 		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
 
 		// lookup head
-		t::uint8 buf[4];
-		if(s->read(buf, sizeof(buf)) != sizeof(buf))
-			throw Exception(_ << "can't even read the magic word: " << s->io::InStream::lastErrorMessage());
+		t::uint8 buf[EI_NIDENT];
+		int bufs = s->read(buf, sizeof(buf));
 
 		// is it ELF?
-		if(buf[0] == ELFMAG0 && buf[1] == ELFMAG1 && buf[2] == ELFMAG2 && buf[3] == ELFMAG3) {
+		if(bufs >= 4
+		&& buf[EI_MAG0] == ELFMAG0
+		&& buf[EI_MAG1] == ELFMAG1
+		&& buf[EI_MAG2] == ELFMAG2
+		&& buf[EI_MAG3] == ELFMAG3) {
+			if(bufs < EI_NIDENT)
+				throw Exception("incomplete header in ELF");
 			s->moveTo(0);
-			return new elf::File(*this, path, s);
+			switch(buf[EI_CLASS]) {
+			case ELFCLASS32:	return new elf::File32(*this, path, s);
+			case ELFCLASS64:	return new elf::File64(*this, path, s);
+			default:			throw Exception(_ << "unknown ELF class: " << io::hex(buf[EI_CLASS]));
+			}
 		}
 
 		// else I don't know
@@ -80,7 +91,27 @@ File *Manager::openFile(sys::Path path) {
 elf::File *Manager::openELFFile(sys::Path path) {
 	try {
 		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
-		return new elf::File(*this, path, s);
+
+		// lookup head
+		t::uint8 buf[EI_NIDENT];
+		int bufs = s->read(buf, sizeof(buf));
+		s->moveTo(0);
+
+		// is it ELF?
+		if(bufs < EI_NIDENT)
+			throw Exception("not an ELF file");
+		if(buf[EI_MAG0] != ELFMAG0
+		|| buf[EI_MAG1] != ELFMAG1
+		|| buf[EI_MAG2] != ELFMAG2
+		|| buf[EI_MAG3] != ELFMAG3)
+			throw Exception("incomplete header in ELF");
+
+		// open the right ELF
+		switch(buf[EI_CLASS]) {
+		case ELFCLASS32:	return new elf::File32(*this, path, s);
+		case ELFCLASS64:	return new elf::File64(*this, path, s);
+		default:			throw Exception(_ << "unknown ELF class: " << io::hex(buf[EI_CLASS]));
+		}
 	}
 	catch(sys::SystemException& e) {
 		throw Exception(e.message());

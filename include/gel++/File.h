@@ -30,7 +30,10 @@ using namespace elm;
 class Image;
 class Manager;
 class Parameter;
-namespace elf { class File; }
+namespace elf {
+	class File;
+	class File64;
+}
 
 class Segment {
 public:
@@ -61,7 +64,8 @@ public:
 	inline io::IntFormat format(address_t a) { return gel::format(addressType(), a); }
 	inline Manager& manager(void) const { return man; }
 
-	virtual elf::File *toELF(void);
+	virtual elf::File *toELF();
+	virtual elf::File64 *toELF64();
 
 	virtual type_t type(void) = 0;
 	virtual bool isBigEndian(void) = 0;

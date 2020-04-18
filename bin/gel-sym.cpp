@@ -58,16 +58,16 @@ public:
 				elf::File *f = gel::Manager::openELF(args[i]);
 				for(int i = 0; i < f->sections().length(); i++) {
 					elf::Section *sect = f->sections()[i];
-					if(sect->info().sh_type == SHT_SYMTAB || sect->info().sh_type == SHT_DYNAMIC) {
+					if(sect->type() == SHT_SYMTAB || sect->type() == SHT_DYNAMIC) {
 						cout << "SECTION " << sect->name() << io::endl;
 						cout << "st_value st_size  binding type    st_shndx         name\n";
-						for(elf::SymbolIter sym(*f, *sect); sym(); sym++)
-							cout <<	word_fmt((*sym).st_value)						<< ' '
-								 << word_fmt((*sym).st_size) 						<< ' '
-								 << io::fmt(get_binding(*sym)).width(7)				<< ' '
-								 << io::fmt(get_type(*sym)).width(7)				<< ' '
+						for(auto sym: f->symbols())
+							cout <<	word_fmt(sym->value())						<< ' '
+								 << word_fmt(sym->size()) 						<< ' '
+								 << io::fmt(sym->size()).width(7)				<< ' '
+								 << io::fmt(sym->type()).width(7)				<< ' '
 								 << io::fmt(get_section_index(f, *sym)).width(16)	<< ' '
-								 << sym.name()										<< io::endl;
+								 << sym->name()										<< io::endl;
 					}
 				}
 				delete f;
@@ -123,16 +123,16 @@ private:
 	 * @param infos		Information about the symbol.
 	 * @return			Section as a string.
 	 */
-	string get_section_index(elf::File *file, const elf::Elf32_Sym& infos) {
-		switch(infos.st_shndx) {
+	string get_section_index(elf::File *file, elf::Symbol& sym) {
+		switch(sym.shndx()) {
 		case SHN_UNDEF: 	return "undef";
 		case SHN_ABS: 		return "abs";
 		case SHN_COMMON:	return "common";
 		default: {
-			if(file->sections().length() <= infos.st_shndx)
-				return _ << infos.st_shndx;
+			if(file->sections().length() <= sym.shndx())
+				return _ << sym.shndx();
 			else
-				return file->sections()[infos.st_shndx]->name();
+				return file->sections()[sym.shndx()]->name();
 			}
 		}
 	}

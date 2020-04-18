@@ -57,6 +57,32 @@ UnixParameter::UnixParameter(void): page_size(4 * 1024) { }
  */
 UnixParameter UnixParameter::null;
 
+/**
+ * @var Array<sys::Path> UnixParameter::lib_paths;
+ * The given paths are used to retrieve libraries in dynamic linking
+ * resolution. They are put at the front of the list of looked directories.
+ */
+
+/**
+ * @var sys::Path UnixParameter::sys_root;
+ * If not null, it is used as prefix of all tested paths to retrieve
+ * dynamic libraries. It may be used to embed in the current file system,
+ * a file system corresponding to the linked executable and libraries.
+ */
+
+/**
+ * @var bool UnixParameter::is_linux;
+ * If set to true (default), consider that the executable lives in a Linux
+ * system (/lib is also looked to resolve dynamic libraries, the RPATH
+ * supports $ORIGIN, $LIB and $PLATFORM).
+ */
+
+/**
+ * @var bool UnixParameter::no_default_path;
+ * If set to true (default to false), no default directory (/lib, /usr/lib)
+ * is involved in the dynamic library retrieval.
+ */
+
 
 /**
  * @class Unit
@@ -71,8 +97,9 @@ Unit::Unit(File *file): _file(file), _base(0), _dyn(nullptr)
 
 /**
  */
-Unit::Unit(cstring name): _name(name), _file(nullptr), _base(0), _dyn(nullptr)
+Unit::Unit(sys::Path name): _name(name), _file(nullptr), _base(0), _dyn(nullptr)
 { }
+
 
 /**
  * If required, retrieve the file from path list. And load it in the image.
@@ -82,30 +109,30 @@ Unit::Unit(cstring name): _name(name), _file(nullptr), _base(0), _dyn(nullptr)
  */
 t::uint32 Unit::load(UnixBuilder& builder, t::uint32 base) {
 	_base = base;
-	t::uint32 top = base;
+	address_t top = base;
 
 	// build the image
 	for(auto h: _file->programHeaders()) {
-		switch(h.info().p_type) {
+		switch(h->type()) {
 
 		// load a segment
 		case PT_LOAD: {
 				ImageSegment::flags_t f = 0;
-				if((h.info().p_flags & PF_X) != 0)
+				if((h->flags() & PF_X) != 0)
 					f |= ImageSegment::EXECUTABLE;
-				if((h.info().p_flags & PF_W) != 0)
+				if((h->flags() & PF_W) != 0)
 					f |= ImageSegment::WRITABLE;
-				if((h.info().p_flags & PF_R) != 0)
+				if((h->flags() & PF_R) != 0)
 					f |= ImageSegment::READABLE;
-				ImageSegment *is = new ImageSegment(_file, h.content(), base + h.info().p_vaddr, f);
+				ImageSegment *is = new ImageSegment(_file, h->content(), base + h->vaddr(), f);
 				builder._im->add(is);
-				top = max(top, _base + h.info().p_vaddr + h.info().p_memsz);
+				top = max(top, _base + h->vaddr() + h->memsz());
 			}
 			break;
 
 		// record for dynamic linking
 		case PT_DYNAMIC:
-			_dyn = &h;
+			_dyn = h;
 			break;
 
 		// simply ignored
@@ -118,7 +145,7 @@ t::uint32 Unit::load(UnixBuilder& builder, t::uint32 base) {
 		case PT_PHDR:
 			break;
 		default:
-			builder.onError(level_warning, _ << "unknown program header " << format(address_32, h.info().p_type));
+			builder.onError(level_warning, _ << "unknown program header " << format(address_32, h->type()));
 			break;
 		}
 	}
@@ -181,7 +208,6 @@ void Unit::link(UnixBuilder& builder) {
 		throw Exception("STRTAB address not in loaded segments!");
 
 	// perform the link itself
-	Vector<sys::Path> lpaths;
 	for(Cursor c(_dyn->content()); c.avail(sizeof(Elf32_Dyn)); c.skip(sizeof(Elf32_Dyn))) {
 		Elf32_Dyn *e = (Elf32_Dyn *)c.here();
 		Elf32_Sword tag = e->d_tag;
@@ -195,8 +221,14 @@ void Unit::link(UnixBuilder& builder) {
 		case DT_RPATH: {
 				t::uint32 off = e->d_un.d_val;
 				c.decoder()->fix(off);
-				cstring path = getString(str, off);
-				lpaths.add(sys::Path(path));
+				string path = getString(str, off);
+				int i = path.indexOf(':');
+				while(i >= 0) {
+					_rpath.add(builder.expand(path.substring(0, i), this));
+					path = path.substring(i + 1);
+					i = path.indexOf(':');
+				}
+				_rpath.add(builder.expand(path, this));
 			}
 			break;
 
@@ -204,7 +236,7 @@ void Unit::link(UnixBuilder& builder) {
 				t::uint32 off = e->d_un.d_val;
 				c.decoder()->fix(off);
 				cstring name = getString(str, off);
-				Unit *u = builder.get(name);
+				Unit *u = builder.resolve(name, this);
 				_needed.add(u);
 			}
 			break;
@@ -248,27 +280,86 @@ UnixBuilder::UnixBuilder(File *prog, const Parameter& params)
 	_prog = prog->toELF();
 	ASSERTP(_prog, "UnixBuilder builder supports only ELF files!");
 	ASSERTP(_prog->type() == File::program, "file must be a program!");
+
+	// add LD_LIBRARY_PATHS
+	cstring llp = _uparams->getenv("LD_LIBARY_PATH");
+	int i = llp.indexOf(':');
+	while(i >= 0) {
+		lpaths.add(llp.substring(0, i));
+		llp = llp.substring(i + 1);
+		i = llp.indexOf(':');
+	}
+	lpaths.add(llp);
+
+	// add parameter paths
+	for(auto p: _uparams->lib_paths)
+		lpaths.add(p);
+
+	// add default paths
+	if(!_uparams->no_default_path) {
+		if(_uparams->is_linux)
+			lpaths.add("/lib");
+		lpaths.add("/usr/lib");
+	}
 }
+
+/**
+ * Try to load a unit using the given path.
+ * @param p		Path of the unit.
+ */
+Unit *UnixBuilder::get(sys::Path p) {
+
+	// look in current units
+	p = p.absolute();
+	Unit *u = _units.get(p, nullptr);
+	if(u != nullptr)
+		return u;
+
+	// creates the unit
+	u = new Unit(p);
+	todo.add(u);
+	_units.put(p, u);
+	return u;
+
+}
+
 
 /**
  * Get a link unit by its name. If it is already involved in linking, return
  * the corresponding unit. Else, creates the unit and record it for
  * processing.
  * @param name	Unit name.
+ * @param unit	Unit requiring the named unit.
  * @return		Unit.
  */
-Unit *UnixBuilder::get(cstring name) {
+Unit *UnixBuilder::resolve(cstring name, Unit *unit) {
 
-	// look in current units
-	Unit *u = _units.get(name, nullptr);
-	if(u != nullptr)
-		return u;
+	// '/' in name => name = path
+	// relative path: relative to what? CWD?
+	if(name.indexOf('/') >= 0) {
+		Unit *u = get(sys::Path(name));
+		if(u != nullptr)
+			return u;
+	}
 
-	// creates the unit
-	u = new Unit(name);
-	todo.add(u);
-	_units.put(name, u);
-	return u;
+	// DT_RPATH
+	for(auto p: unit->_rpath) {
+		sys::Path pp = sys::Path(p) / name;
+		Unit *u = get(pp);
+		if(u != nullptr)
+			return u;
+	}
+
+	// LD_LIBRARY_PATH + default
+	for(auto p: lpaths) {
+		sys::Path pp = sys::Path(p) / name;
+		Unit *u = get(pp);
+		if(u != nullptr)
+			return u;
+	}
+
+	// not found
+	return nullptr;
 }
 
 /**
@@ -305,6 +396,7 @@ Image *UnixBuilder::build(void) {
  * @return		Opened file or null (if it can't be opened or does not match).
  */
 File *UnixBuilder::open(sys::Path path) {
+#	if 0
 	if(!path.isReadable())
 		return nullptr;
 	try {
@@ -321,15 +413,42 @@ File *UnixBuilder::open(sys::Path path) {
 		_prog->manager().getErrorHandler()->onError(level_warning, _ << "loading library " << path << ": " << e.message());
 		return nullptr;
 	}
+#	endif
 }
 
 
 /**
- * Add an RPath content.
- * @param paths	Colon-separated paths to retrieve a dependency.
+ * Expand the RPATH component s according to the given unit u.
+ * @param s		RPATH component to expand.
+ * @param u		Current unit.
+ * @return		Expanded RPATH component.
  */
-void UnixBuilder::addRPath(string paths) {
+string UnixBuilder::expand(string s, Unit *u) {
+	if(!_uparams->is_linux)
+		return s;
+	if(!s.startsWith("$"))
+		return s;
+	if(!s.startsWith("${")) {
+		if(s.startsWith("$ORIGIN"))
+			return u->origin() / s.substring(7);
+		else if(s.startsWith("$LIB"))
+			return sys::Path("lib") / s.substring(4);
+		// !!TODO!!
+		// else if(s.startsWith("$PLATFORM"))
+		//	return platform / s.substring(9);
+	}
+	else {
+		if(s.startsWith("${ORIGIN}"))
+			return u->origin() / s.substring(9);
+		else if(s.startsWith("${LIB}"))
+			return sys::Path("lib") / s.substring(6);
+		// !!TODO!!
+		// else if(s.startsWith("${PLATFORM}"))
+		//	return platform / s.substring(11);
+	}
 
+	onError(level_warning, _ << "cannot expand " << s);
+	return s;
 }
 
 
@@ -339,23 +458,17 @@ void UnixBuilder::addRPath(string paths) {
  * @return			Found file or null.
  * @throw Exception	If the file can not be obtained.
  */
-gel::File *UnixBuilder::retrieve(string name) {
-	File *f = nullptr;
-
-	// contains any "/"?
-	if(name.indexOf('/') >= 0)
-		f = open(sys::Path(name));
-
-	// lookup in the path
-	else {
-		for(int i = 0; f == nullptr && i < lpaths.count(); i++)
-			f = open(lpaths[i] / name);
-		for(int i = 0; f == nullptr && i < _params.paths.count(); i++)
-			f = open(_params.paths[i] / name);
+gel::File *UnixBuilder::retrieve(sys::Path name) {
+	if(!_uparams->sys_root.isEmpty())
+		name = _uparams->sys_root / name.toString();
+	if(!name.isFile())
+		return nullptr;
+	try {
+		return gel::Manager::openELF(name);
 	}
-
-	// return found file
-	return f;
+	catch(gel::Exception& e) {
+		return nullptr;
+	}
 }
 
 

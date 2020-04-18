@@ -119,7 +119,7 @@ private:
 			"PREINIT_ARRAYSZ",
 			"SYMTAB_SHNDX"
 		};
-
+#	if 0
 		// get the plugin
 		elf::ArchPlugin *plug = elf::ArchPlugin::plug(file->info().e_machine);
 
@@ -214,10 +214,10 @@ private:
 				}
 
 			}
-
 		// release the plugin
 		if(plug != nullptr)
 			plug->unplug();
+#	endif
 	}
 
 	Vector<string> args;

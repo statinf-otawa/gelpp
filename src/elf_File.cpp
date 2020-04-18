@@ -37,25 +37,25 @@ namespace gel { namespace elf {
 class Segment: public gel::Segment {
 public:
 	Segment(ProgramHeader *h): _head(h) {
-		if(h->info().p_flags & PF_X)
+		if(h->flags() & PF_X)
 			_name = "code";
-		else if(h->info().p_flags & PF_W)
+		else if(h->flags() & PF_W)
 			_name = "data";
-		else if(h->info().p_flags & PF_R)
+		else if(h->flags() & PF_R)
 			_name = "rodata";
 		else
 			_name = "unknown";
 	}
 
-	virtual cstring name(void) { return _name; }
-	virtual address_t baseAddress(void) { return _head->info().p_vaddr; }
-	virtual address_t loadAddress(void) { return _head->info().p_paddr; }
-	virtual size_t size(void) { return _head->info().p_memsz; }
-	virtual size_t alignment(void) { return _head->info().p_align; }
-	virtual bool isExecutable(void) { return _head->info().p_flags & PF_X; }
-	virtual bool isWritable(void)  { return _head->info().p_flags & PF_W; }
-	virtual bool hasContent(void) { return true; }
-	virtual Buffer buffer(void) { return _head->content(); }
+	cstring name() 			override { return _name; }
+	address_t baseAddress()	override { return _head->vaddr(); }
+	address_t loadAddress()	override { return _head->paddr(); }
+	size_t size() 			override { return _head->memsz(); }
+	size_t alignment() 		override { return _head->align(); }
+	bool isExecutable() 	override { return _head->flags() & PF_X; }
+	bool isWritable()		override { return _head->flags() & PF_W; }
+	bool hasContent()		override { return true; }
+	Buffer buffer()			override { return _head->content(); }
 
 private:
 	cstring _name;
@@ -70,19 +70,19 @@ private:
  */
 
 
-void File::fix(t::uint16& i) 	{ i = ENDIAN2(h->e_ident[EI_DATA], i); }
-void File::fix(t::int16& i) 	{ i = ENDIAN2(h->e_ident[EI_DATA], i); }
-void File::fix(t::uint32& i)	{ i = ENDIAN4(h->e_ident[EI_DATA], i); }
-void File::fix(t::int32& i)		{ i = ENDIAN4(h->e_ident[EI_DATA], i); }
-void File::fix(t::uint64& i)	{ i = ENDIAN8(h->e_ident[EI_DATA], i); }
-void File::fix(t::int64& i)		{ i = ENDIAN8(h->e_ident[EI_DATA], i); }
+void File::fix(t::uint16& i) 	{ i = ENDIAN2(id[EI_DATA], i); }
+void File::fix(t::int16& i) 	{ i = ENDIAN2(id[EI_DATA], i); }
+void File::fix(t::uint32& i)	{ i = ENDIAN4(id[EI_DATA], i); }
+void File::fix(t::int32& i)		{ i = ENDIAN4(id[EI_DATA], i); }
+void File::fix(t::uint64& i)	{ i = ENDIAN8(id[EI_DATA], i); }
+void File::fix(t::int64& i)		{ i = ENDIAN8(id[EI_DATA], i); }
 
-void File::unfix(t::uint16& i) 	{ i = UN_ENDIAN2(h->e_ident[EI_DATA], i); }
-void File::unfix(t::int16& i) 	{ i = UN_ENDIAN2(h->e_ident[EI_DATA], i); }
-void File::unfix(t::uint32& i)	{ i = UN_ENDIAN4(h->e_ident[EI_DATA], i); }
-void File::unfix(t::int32& i)	{ i = UN_ENDIAN4(h->e_ident[EI_DATA], i); }
-void File::unfix(t::uint64& i)	{ i = UN_ENDIAN8(h->e_ident[EI_DATA], i); }
-void File::unfix(t::int64& i)	{ i = UN_ENDIAN8(h->e_ident[EI_DATA], i); }
+void File::unfix(t::uint16& i) 	{ i = UN_ENDIAN2(id[EI_DATA], i); }
+void File::unfix(t::int16& i) 	{ i = UN_ENDIAN2(id[EI_DATA], i); }
+void File::unfix(t::uint32& i)	{ i = UN_ENDIAN4(id[EI_DATA], i); }
+void File::unfix(t::int32& i)	{ i = UN_ENDIAN4(id[EI_DATA], i); }
+void File::unfix(t::uint64& i)	{ i = UN_ENDIAN8(id[EI_DATA], i); }
+void File::unfix(t::int64& i)	{ i = UN_ENDIAN8(id[EI_DATA], i); }
 
 /**
  * Constructor.
@@ -92,61 +92,41 @@ void File::unfix(t::int64& i)	{ i = UN_ENDIAN8(h->e_ident[EI_DATA], i); }
  */
 File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream)
 :	gel::File(manager, path),
-	h(new Elf32_Ehdr),
 	s(stream),
-	sec_buf(0),
-	str_tab(0),
-	ph_buf(0),
-	syms(0)
+	id(nullptr),
+	ph_loaded(false),
+	sects_loaded(false),
+	str_tab(nullptr),
+	syms(nullptr),
+	segs_init(false)
 {
-	readAt(0, h, sizeof(Elf32_Ehdr));
-	if(h->e_ident[0] != ELFMAG0
-	|| h->e_ident[1] != ELFMAG1
-	|| h->e_ident[2] != ELFMAG2
-	|| h->e_ident[3] != ELFMAG3)
-		throw Exception("not an ELF file");
-	if(h->e_ident[EI_CLASS] != ELFCLASS32)
-		throw Exception("only 32-bits class supported");
-	fix(h->e_type);
-	fix(h->e_version);
-	fix(h->e_entry);
-	fix(h->e_shnum);
-	fix(h->e_phnum);
-	fix(h->e_shentsize);
-	fix(h->e_phentsize);
-	fix(h->e_shstrndx);
-	if(h->e_shstrndx >= h->e_shnum)
-		throw Exception("malformed ELF");
-	fix(h->e_shoff);
-	fix(h->e_phoff);
 }
 
 /**
  */
 File::~File(void) {
 	delete s;
-	delete h;
-	if(syms)
+	if(syms != nullptr)
 		delete syms;
-	if(sec_buf)
-		delete [] sec_buf;
-	if(ph_buf)
-		delete [] ph_buf;
+	for(auto s: sects)
+		delete s;
+	for(auto p: phs)
+		delete p;
+	for(auto s: segs)
+		delete s;
 }
 
 /**
  * Get the map of symbols of the file.
  * @return	Map of symbols.
  */
-const File::SymbolMap& File::symbols(void) {
-	if(!syms) {
-		syms = new SymbolMap();
-		sections();
-		for(int i = 0; i < sects.count(); i++) {
-			Section *s = sects[i];
-			if(s->info().sh_type == SHT_SYMTAB || s->info().sh_type == SHT_DYNSYM)
-				for(SymbolIter sym(*this, *s); sym(); sym++)
-					syms->put(sym.name(), &*sym);
+const SymbolTable& File::symbols() {
+	if(syms == nullptr) {
+		syms = new SymbolTable();
+		initSections();
+		for(auto s: sects) {
+			if(s->type() == SHT_SYMTAB || s->type() == SHT_DYNSYM)
+				fillSymbolTable(*syms, s);
 		}
 	}
 	return *syms;
@@ -157,27 +137,10 @@ const File::SymbolMap& File::symbols(void) {
  * @return	Program headers.
  * @throw gel::Exception	If there is a file read error.
  */
-Vector<ProgramHeader>& File::programHeaders(void) {
-	if(!ph_buf) {
-
-		// load it
-		ph_buf = new t::uint8[h->e_phentsize * h->e_phnum];
-		readAt(h->e_phoff, ph_buf, h->e_phentsize * h->e_phnum);
-
-		// build them
-		phs.setLength(h->e_phnum);
-		for(int i = 0; i < h->e_phnum; i++) {
-			Elf32_Phdr *ph = (Elf32_Phdr *)(ph_buf + i * h->e_phentsize);
-			fix(ph->p_align);
-			fix(ph->p_filesz);
-			fix(ph->p_flags);
-			fix(ph->p_memsz);
-			fix(ph->p_offset);
-			fix(ph->p_paddr);
-			fix(ph->p_type);
-			fix(ph->p_vaddr);
-			phs[i] = ProgramHeader(this, ph);
-		}
+Vector<ProgramHeader *>& File::programHeaders(void) {
+	if(!ph_loaded) {
+		loadProgramHeaders(phs);
+		ph_loaded = true;
 	}
 	return phs;
 }
@@ -188,16 +151,23 @@ Vector<ProgramHeader>& File::programHeaders(void) {
  * @return			Found string.
  * @throw gel::Exception	If there is a file read error or offset is out of bound.
  */
-cstring File::stringAt(t::uint32 offset) {
-	if(!str_tab) {
-		if(h->e_shstrndx >= sections().length())
-			throw gel::Exception(_ << "strtab index out of bound");
-		str_tab = sections()[h->e_shstrndx];
-		cerr << "DEBUG: strtab = " << h->e_shstrndx << io::endl;
-		cerr << "DEBUG: size = " << str_tab->info().sh_size << io::endl;
-	}
+cstring File::stringAt(t::uint64 offset) {
+	return stringAt(offset, getStrTab());
+}
+
+
+/**
+ * Get a string from the string table.
+ * @param offset	Offset of the string.
+ * @param sect		Section index to find the string in.
+ * @return			Found string.
+ * @throw gel::Exception	If there is a file read error or offset is out of bound.
+ */
+cstring File::stringAt(t::uint64 offset, int sect) {
+	if(sect >= sections().length())
+		throw gel::Exception(_ << "strtab index out of bound");
 	cstring r;
-	str_tab->content().get(offset, r);
+	sects[sect]->content().get(offset, r);
 	return r;
 }
 
@@ -236,36 +206,8 @@ File *File::toELF(void) {
 
 /**
  */
-File::type_t File::type(void) {
-	switch(h->e_type) {
-	case ET_NONE:
-	case ET_REL:	return no_type;
-	case ET_EXEC:	return program;
-	case ET_DYN:	return library;
-	case ET_CORE:	return program;
-	default:		return no_type;
-	}
-}
-
-
-/**
- */
 bool File::isBigEndian(void) {
-	return h->e_ident[EI_DATA] == ELFDATA2MSB;
-}
-
-
-/**
- */
-address_type_t File::addressType(void) {
-	return address_32;
-}
-
-
-/**
- */
-address_t File::entry(void) {
-	return h->e_entry;
+	return id[EI_DATA] == ELFDATA2MSB;
 }
 
 
@@ -277,21 +219,27 @@ Image *File::make(const Parameter& params) {
 }
 
 
-/**
- */
-int File::count(void) {
-	if(segs.count() == 0) {
-		programHeaders();
-		for(int i = 0; i < phs.count(); i++)
-			if(phs[i].info().p_type == PT_LOAD)
-				segs.add(new Segment(&phs[i]));
-	}
+///
+void File::initSegments() {
+	if(segs_init)
+		return;
+	for(auto ph: programHeaders())
+		if(ph->type() == PT_LOAD)
+			segs.add(new Segment(ph));
+}
+
+
+///
+int File::count() {
+	initSegments();
 	return segs.count();
 }
+
 
 /**
  */
 gel::Segment *File::segment(int i) {
+	initSegments();
 	return segs[i];
 }
 
@@ -300,34 +248,10 @@ gel::Segment *File::segment(int i) {
  * Initialize the section part.
  */
 void File::initSections(void) {
-
-	// allocate memory
-	t::uint32 size = h->e_shentsize * h->e_shnum;
-	sec_buf = new t::uint8[size];
-	array::set<uint8_t>(sec_buf, size, 0);
-
-	// load sections
-	readAt(h->e_shoff, sec_buf, size);
-
-	// initialize sections
-	sects.setLength(h->e_shnum);
-	for(int i = 0; i < h->e_shnum; i++) {
-		Elf32_Shdr *s = (Elf32_Shdr *)(sec_buf + i * h->e_shentsize);
-		fix(s->sh_addr);
-		fix(s->sh_addralign);
-		fix(s->sh_entsize);
-		fix(s->sh_flags);
-		fix(s->sh_info);
-		fix(s->sh_link);
-		fix(s->sh_name);
-		fix(s->sh_offset);
-		fix(s->sh_size);
-		fix(s->sh_type);
-		sects[i] = new Section(this, s);
-		/*if(s->sh_flags & SHF_ALLOC)
-			segs.add(sects[i]);*/
+	if(!sects_loaded) {
+		loadSections(sects);
+		sects_loaded = true;
 	}
-
 }
 
 
@@ -337,8 +261,7 @@ void File::initSections(void) {
  * @throw gel::Exception 	If there is an error when file is read.
  */
 Vector<Section *>& File::sections(void) {
-	if(!sec_buf)
-		initSections();
+	initSections();
 	return sects;
 }
 
@@ -350,17 +273,11 @@ Vector<Section *>& File::sections(void) {
  */
 
 /**
- * Empty builder.
- */
-Section::Section(void): _file(0), _info(0), buf(0) {
-}
-
-/**
  * Builder.
  * @param file	Parent file.
  * @param entry	Section entry.
  */
-Section::Section(elf::File *file, Elf32_Shdr *entry): _file(file), _info(entry), buf(0) {
+Section::Section(elf::File *file): _file(file), buf(0) {
 }
 
 Section::~Section(void) {
@@ -373,91 +290,10 @@ Section::~Section(void) {
  * @return	Section content.
  * @throw gel::Exception	If there is a file read error.
  */
-Buffer Section::content(void) {
-	if(!buf) {
-
-		// read the data
-		buf = new t::uint8[_info->sh_size];
-		_file->readAt(_info->sh_offset, buf, _info->sh_size);
-
-		// fix endianness according to the section type
-		if(_info->sh_type == SHT_SYMTAB || _info->sh_type == SHT_DYNSYM) {
-			if((_info->sh_size / _info->sh_entsize) * _info->sh_entsize != _info->sh_size)
-				throw Exception(_ << "garbage found at end of symbol table " << name());
-			Cursor c(Buffer(_file, buf, _info->sh_size));
-			while(c.avail(_info->sh_entsize)) {
-				Elf32_Sym *s = (Elf32_Sym *)c.here();
-				c.decoder()->fix(s->st_name);
-				c.decoder()->fix(s->st_value);
-				c.decoder()->fix(s->st_size);
-				c.decoder()->fix(s->st_shndx);
-				c.skip(_info->sh_entsize);
-			}
-		}
-	}
-	return Buffer(_file, buf, _info->sh_size);
-}
-
-/**
- * Get the section name.
- * @return	Section name.
- * @throw gel::Exception	If there is an error during file read.
- */
-cstring Section::name(void) {
-	return _file->stringAt(_info->sh_name);
-}
-
-/**
- * @fn const Elf32_Shdr& Section::info(void);
- * Get section information.
- */
-
-/**
- */
-address_t Section::baseAddress(void) {
-	return _info->sh_addr;
-}
-
-/**
- */
-address_t Section::loadAddress(void) {
-	return _info->sh_addr;
-}
-
-/**
- */
-size_t Section::size(void) {
-	return _info->sh_size;
-}
-
-/**
- */
-size_t Section::alignment(void) {
-	return _info->sh_addralign;
-}
-
-/**
- */
-bool Section::isExecutable(void) {
-	return _info->sh_flags & SHF_EXECINSTR;
-}
-
-/**
- */
-bool Section::isWritable(void) {
-	return _info->sh_flags & SHF_WRITE;
-}
-
-/**
- */
-bool Section::hasContent(void) {
-	return _info->sh_type == SHT_PROGBITS;
-}
-
-/**
- */
-Buffer Section::buffer(void) {
-	return content();
+Buffer Section::content() {
+	if(!buf)
+		buf = readBuf();
+	return Buffer(_file, buf, size());
 }
 
 
@@ -470,12 +306,7 @@ Buffer Section::buffer(void) {
 
 /**
  */
-ProgramHeader::ProgramHeader(void): _file(0), _info(0), _buf(0) {
-}
-
-/**
- */
-ProgramHeader::ProgramHeader(File *file, Elf32_Phdr *info): _file(file), _info(info), _buf(0) {
+ProgramHeader::ProgramHeader(elf::File *file): _file(file), _buf(nullptr) {
 }
 
 /**
@@ -486,25 +317,14 @@ ProgramHeader::~ProgramHeader(void) {
 }
 
 /**
- * @fn const Elf32_Phdr& ProgramHeaderinfo(void) const;
- * Get information on the program header.
- * @return	Program header information.
- */
-
-/**
  * Get the content of the program header.
  * @return	Program header contant.
  * @throw gel::Exception	If there is an error at file read.
  */
 Buffer ProgramHeader::content(void) {
-	if(!_buf) {
-		_buf = new t::uint8[_info->p_memsz];
-		if(_info->p_filesz)
-			_file->readAt(_info->p_offset, _buf, _info->p_filesz);
-		if(_info->p_filesz < _info->p_memsz)
-			array::set(_buf, _info->p_memsz - _info->p_filesz, t::uint8(0));
-	}
-	return Buffer(_file, _buf, _info->p_memsz);
+	if(_buf == nullptr)
+		_buf = readBuf();
+	return Buffer(_file, _buf, memsz());
 }
 
 /**
@@ -516,15 +336,58 @@ Buffer ProgramHeader::content(void) {
 
 
 /**
+ * @class Symbol
+ * A symbol for an ELF file (32- or 64-bit).
+ * @ingroup elf
+ */
+
+/**
+ * @fn Symbol::Symbol(File& file): _file(file);
+ * Build a symbol from the given ELF file.
+ * @param file	ELF file containing the symbol.
+ */
+
+///
+Symbol::~Symbol() {
+};
+
+
+/**
+ * @class SymbolTable
+ * A table of symbols of an ELF file.
+ * @ingroup elf
+ */
+
+
+/**
+ * Build the symbol table.
+ */
+
+
+///
+SymbolTable::~SymbolTable() {
+	for(auto m: mems)
+		delete [] m;
+}
+
+
+///
+void SymbolTable::record(t::uint8 *mem) {
+	mems.add(mem);
+}
+
+
+/**
  * @class  NoteIter
  * Iterator on the notes for a PT_NOTE program header.
  * @ingroup elf
  */
 
+
 /**
  */
 NoteIter::NoteIter(ProgramHeader& ph): c(ph.content()) {
-	ASSERT(ph.info().p_type == PT_NOTE);
+	ASSERT(ph.type() == PT_NOTE);
 	next();
 }
 
@@ -540,9 +403,9 @@ void NoteIter::next(void) {
 	}
 
 	// read the note header
-	if(!c.avail(sizeof(Elf32_Word) * 3))
+	if(!c.avail(sizeof(t::uint32) * 3))
 		throw Exception("malformed note entry");
-	Elf32_Word namesz;
+	t::uint32 namesz;
 	c.read(namesz);
 	c.read(_descsz);
 	c.read(_type);
@@ -554,14 +417,16 @@ void NoteIter::next(void) {
 	_name = cstring((const char *)p);
 	if(!c.read(size_t(_descsz), p))
 		throw Exception("malformed note entry");
-	_desc = (Elf32_Word *)p;
+	_desc = reinterpret_cast<const t::uint32 *>(p);
 }
+
 
 /**
  * @fn bool NoteIter::ended(void);
  * Test if the note traversal is ended.
  * @return	True if the traversal is ended, false else.
  */
+
 
 /**
  * @fn cstring NoteIter::name(void) const;
@@ -588,6 +453,7 @@ void NoteIter::next(void) {
  */
 
 
+#if 0
 /**
  * @class SymbolIter;
  * Iterator on the symbols contained in a section. Given sections must be of type
@@ -597,7 +463,7 @@ void NoteIter::next(void) {
 /**
  */
 SymbolIter::SymbolIter(File& file, Section& section): f(file), s(section), c(section.content()) {
-	ASSERT(section.info().sh_type == SHT_SYMTAB || section.info().sh_type == SHT_DYNSYM);
+	ASSERT(section.type() == SHT_SYMTAB || section.type() == SHT_DYNSYM);
 }
 
 /**
@@ -625,10 +491,10 @@ cstring SymbolIter::name(void) {
 
 		// find string section number
 		int sn;
-		if(!s.info().sh_link)
+		if(!s.link())
 			sn = f.info().e_shstrndx;
 		else
-			sn = s.info().sh_link;
+			sn = s.link();
 
 		// get the section and the buffer
 		if(sn == 0 || sn >= f.sections().length())
@@ -639,5 +505,6 @@ cstring SymbolIter::name(void) {
 	names.get(item().st_name, r);
 	return r;
 }
+#	endif
 
-} }	// gel::file
+} }	// gel::elf

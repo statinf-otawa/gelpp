@@ -3,6 +3,8 @@
 add_library(gel++ SHARED
 	elf_ArchPlugin.cpp
 	elf_File.cpp
+	elf_File32.cpp
+	elf_File64.cpp
 	elf_UnixBuilder.cpp
 	gel_File.cpp
 	gel_Image.cpp

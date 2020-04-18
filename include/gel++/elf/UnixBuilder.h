@@ -22,6 +22,7 @@
 #include <elm/data/HashMap.h>
 #include <elm/data/VectorQueue.h>
 #include <gel++/Image.h>
+#include <gel++/elf/File.h>
 
 namespace gel { namespace elf {
 
@@ -33,13 +34,14 @@ public:
 	static const t::uint32
 		SYMBOLIC	= 0x01,
 		TEXTREL		= 0x02,
-		BIND_NOW	= 04;
+		BIND_NOW	= 0x04;
 
-	Unit(cstring name);
+	Unit(sys::Path name);
 	Unit(File *file);
 	inline File *file(void) const { return _file; }
 	t::uint32 base(void) const { return _base; }
-	inline cstring name(void) const { return _name; }
+	inline cstring name(void) const { return _soname; }
+	inline sys::Path origin() const { return _name.parent(); }
 
 	t::uint32 pltrelsz = 0;
 	t::uint32 pltgot = 0;
@@ -57,10 +59,9 @@ public:
 	t::uint32 relsz = 0;
 	t::uint32 relent = 0;
 	t::uint32 pltrel = 0;
-	t::uint32 debug = 0;
-	t::uint32 textrel = 0;
 	t::uint32 jmprel = 0;
 	t::uint32 flags = 0;
+	t::uint32 debug = 0;
 
 protected:
 	cstring getString(ImageSegment *s, t::uint32 off);
@@ -68,12 +69,14 @@ private:
 	t::uint32 load(UnixBuilder& builder, t::uint32 base);
 	void link(UnixBuilder& builder);
 
-	cstring _name;
+	sys::Path _name;
+	cstring _soname;
 	File *_file;
 	t::uint32 _base;
 	Vector<Unit *> _needed;
 	HashMap<cstring, Elf32_Sym *> _map;
 	ProgramHeader *_dyn;
+	Vector<string> _rpath;
 };
 
 
@@ -90,25 +93,30 @@ public:
 	static UnixParameter null;
 	size_t page_size;
 	Array<Auxiliary> auxv;
+	Array<sys::Path> lib_paths;
+	sys::Path sys_root;
+	bool is_linux = true;
+	bool no_default_path = false;
 };
 
 class UnixBuilder: public ImageBuilder {
 	friend class Unit;
 public:
 	UnixBuilder(File *file, const Parameter& param = UnixParameter::null);
-	virtual Image *build(void);
+	Image *build(void) override;
 protected:
-	virtual gel::File *retrieve(string name);
+	gel::File *retrieve(sys::Path name) override;
 private:
-	Unit *get(cstring name);
+	Unit *resolve(cstring name, Unit *unit);
+	Unit *get(sys::Path p);
 	ImageSegment *buildStack(void);
 	void link(File *file, address_t base);
 	File *open(sys::Path path);
-	void addRPath(string paths);
+	string expand(string s, Unit *u);
 
 	elf::File *_prog;
 	const UnixParameter *_uparams;
-	HashMap<string, Unit *> _units;
+	HashMap<sys::Path, Unit *> _units;
 	Image *_im;
 	Vector<Unit *> todo;
 	Vector<sys::Path> lpaths;

@@ -61,9 +61,8 @@ public:
 				if(find) {
 					bool found = false;
 					for(int j = 1; j < ss.count(); j++) {
-						const elf::Elf32_Shdr& si = ss[j]->info();
-						if((si.sh_flags & SHF_ALLOC)
-						&& si.sh_addr <= *find && *find < si.sh_addr + si.sh_size) {
+						auto sect = ss[j];
+						if((sect->flags() & SHF_ALLOC) != 0 && sect->contains(*find)) {
 							found = true;
 							cout << "address " << word_fmt(*find) << " found in section " << ss[j]->name() << io::endl;
 							display_section(j, *ss[j]);
@@ -131,16 +130,15 @@ private:
 	}
 
 	void display_section(int i, elf::Section& sect) {
-		const elf::Elf32_Shdr& s = sect.info();
 		cout << io::fmt(i).width(5).right() << ' '
-			 << io::fmt(get_type(s.sh_type)).width(12) << "  "
-			 << (s.sh_flags & SHF_WRITE ? 'W' : '-')
-			 << (s.sh_flags & SHF_ALLOC ? 'A' : '-')
-			 << (s.sh_flags & SHF_EXECINSTR ? 'X' : '-') << "  "
-			 << word_fmt(s.sh_addr) << ' '
-			 << word_fmt(s.sh_size) << ' '
-			 << word_fmt(s.sh_offset) << ' '
-			 << io::fmt(s.sh_link).width(5).right() << ' '
+			 << io::fmt(get_type(sect.type())).width(12) << "  "
+			 << (sect.flags() & SHF_WRITE ? 'W' : '-')
+			 << (sect.flags() & SHF_ALLOC ? 'A' : '-')
+			 << (sect.flags() & SHF_EXECINSTR ? 'X' : '-') << "  "
+			 << word_fmt(sect.addr()) << ' '
+			 << word_fmt(sect.size()) << ' '
+			 << word_fmt(sect.offset()) << ' '
+			 << io::fmt(sect.link()).width(5).right() << ' '
 			 << sect.name() << io::endl;
 	}
 
