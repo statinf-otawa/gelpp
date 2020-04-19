@@ -214,7 +214,8 @@ bool File::isBigEndian(void) {
 /**
  */
 Image *File::make(const Parameter& params) {
-	UnixBuilder builder(this, params);
+	//UnixBuilder builder(this, params);
+	SimpleBuilder builder(this, params);
 	return builder.build();
 }
 
@@ -226,6 +227,7 @@ void File::initSegments() {
 	for(auto ph: programHeaders())
 		if(ph->type() == PT_LOAD)
 			segs.add(new Segment(ph));
+	segs_init = true;
 }
 
 

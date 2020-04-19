@@ -71,9 +71,9 @@ public:
 	virtual bool isBigEndian(void) = 0;
 	virtual address_type_t addressType(void) = 0;
 	virtual address_t entry(void) = 0;
-	virtual int count(void) = 0;
+	virtual int count() = 0;
 	virtual Segment *segment(int i) = 0;
-	virtual Image *make(void);
+	virtual Image *make();
 	virtual Image *make(const Parameter& params) = 0;
 
 protected:

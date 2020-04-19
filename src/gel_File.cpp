@@ -182,7 +182,7 @@ elf::File64 *File::toELF64() {
  * using the default image builder of the file type. For ELF file,
  * the Unix image builder is used.
  */
-Image *File::make(void) {
+Image *File::make() {
 	return make(Parameter::null);
 }
 
