@@ -109,9 +109,14 @@ private:
 	List<t::uint8 *> mems;
 };
 
+class DynEntry {
+public:
+	int tag;
+	t::uint64 val;
+	address_t ptr;
+};
 
 class Segment;
-
 
 class File: public gel::File, public Decoder {
 	friend class ProgramHeader;
@@ -164,14 +169,50 @@ public:
 	void unfix(t::uint64& w) override;
 	void unfix(t::int64& w) override;
 
-
 protected:
 	inline void setIdent(t::uint8 *i) { id = i; }
 	virtual void loadProgramHeaders(Vector<ProgramHeader *>& headers) = 0;
 	virtual void loadSections(Vector<Section *>& segments) = 0;
 	virtual int getStrTab() = 0;
+
+	typedef struct dyn_t {
+		int tag;
+		union {
+			t::uint64 val;
+			address_t ptr;
+		} un;
+	} dyn_t;
+	virtual void fetchDyn(const t::uint8 *entry, dyn_t& dyn) = 0;
+
 	void read(void *buf, t::uint32 size);
 	void readAt(t::uint32 pos, void *buf, t::uint32 size);
+
+public:
+	// iterators
+	class EntryIter {
+	public:
+		inline EntryIter(File& file, Section *sec, bool ended = false)
+			: f(file), s(sec->entsize()), c(sec->content()) { }
+		inline bool ended() const { return !c.avail(s); }
+		inline const t::uint8 *item() const { return c.here(); }
+		inline void next() { c.skip(s); }
+		inline bool equals(const EntryIter& i) const { return c.equals(i.c); }
+	protected:
+		File &f;
+		size_t s;
+		Cursor c;
+	};
+
+	class DynIter: public EntryIter, public PreIterator<DynIter, dyn_t> {
+	public:
+		DynIter(File& file, Section *sec, bool ended = false);
+		inline const dyn_t& item() const { return d; }
+		inline void next() { EntryIter::next(); if(!c.ended()) f.fetchDyn(c.here(), d); }
+	private:
+		dyn_t d;
+	};
+	Range<DynIter> dyns();
+	Range<DynIter> dyns(Section *sect);
 
 private:
 	void initSections();

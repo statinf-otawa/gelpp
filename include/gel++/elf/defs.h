@@ -95,57 +95,6 @@ typedef struct Elf32_Phdr {
         Elf32_Word p_align;		/**< Alignment in power of two (2**n). */
 } Elf32_Phdr;
 
-#define DT_NULL		 		0
-#define DT_NEEDED 	 		1	/* d_val */
-#define DT_PLTRELSZ	 		2	/* d_val */
-#define DT_PLTGOT	 		3	/* d_ptr */
-#define DT_HASH		 		4	/* d_ptr */
-#define DT_STRTAB	 		5	/* d_ptr */
-#define DT_SYMTAB	 		6	/* d_ptr */
-#define DT_RELA		 		7	/* d_ptr */
-#define DT_RELASZ	 		8	/* d_val */
-#define DT_RELAENT	 		9	/* d_val */
-#define DT_STRSZ			10	/* d_val */
-#define DT_SYMENT			11	/* d_val */
-#define DT_INIT				12	/* d_ptr */
-#define DT_FINI				13	/* d_ptr */
-#define DT_SONAME			14	/* d_val */
-#define DT_RPATH			15	/* d_val */
-#define DT_SYMBOLIC			16
-#define DT_REL				17	/* d_ptr */
-#define DT_RELSZ			18	/* d_val */
-#define DT_RELENT			19	/* d_val */
-#define DT_PLTREL			20	/* d_val */
-#define DT_DEBUG			21	/* d_ptr */
-#define DT_TEXTREL			22
-#define DT_JMPREL			23	/* d_ptr */
-#define DT_BIND_NOW			24
-#define DT_INIT_ARRAY		25	/* d_ptr */
-#define DT_FINI_ARRAY		26	/* d_ptr */
-#define DT_INIT_ARRAYSZ		27	/* d_val */
-#define DT_FINI_ARRAYSZ		28	/* d_val */
-#define DT_RUNPATH			29	/* d_val */
-#define DT_FLAGS			30	/* d_val */
-
-#define DT_ENCODING			32
-
-#define DT_PREINIT_ARRAY	32	/* d_ptr */
-#define DT_PREINIT_ARRAYSZ	33	/* d_val */
-#define DT_SYMTAB_SHNDX		34	/* d_ptr */
-#define DT_COUNT			35
-
-#define DT_LOOS		0x6000000d
-#define DT_HIOS		0x6ffff000
-#define DT_LOPROC	0x70000000
-#define DT_HIPROC	0x7fffffff
-
-#define DF_ORIGIN		0x00000001
-#define DF_SYMBOLIC		0x00000002
-#define DF_TEXTREL		0x00000004
-#define DF_BIND_NOW		0x00000008
-#define DF_STATIC_TLS	0x00000010
-
-
 /* Legal values for note segment descriptor types for core files. */
 typedef struct Elf32_Dyn {
   Elf32_Sword d_tag;
@@ -184,6 +133,14 @@ typedef struct Elf32_Rela {
 #define ELF32_R_SYM(i) ((i)>>8)
 #define ELF32_R_TYPE(i) ((unsigned char)(i))
 #define ELF32_R_INFO(s,t) (((s)<<8)+(unsigned char)(t))
+
+
+// ???
+#define DF_ORIGIN		0x00000001
+#define DF_SYMBOLIC		0x00000002
+#define DF_TEXTREL		0x00000004
+#define DF_BIND_NOW		0x00000008
+#define DF_STATIC_TLS	0x00000010
 
 } }		// gel::elf
 

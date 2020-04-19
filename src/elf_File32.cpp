@@ -184,10 +184,18 @@ void File32::loadSections(Vector<Section *>& sections) {
 	}
 }
 
-
 ///
 int File32::getStrTab() {
 	return h->e_shstrndx;
+}
+
+///
+void File32::fetchDyn(const t::uint8 *entry, dyn_t& dyn) {
+	auto e = *reinterpret_cast<const Elf32_Dyn *>(entry);
+	fix(e.d_tag);
+	fix(e.d_un.d_val);
+	dyn.tag = e.d_tag;
+	dyn.un.val = e.d_un.d_val;
 }
 
 

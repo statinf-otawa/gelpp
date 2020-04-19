@@ -70,20 +70,20 @@ ArchPlugin::ArchPlugin(const make& maker): sys::Plugin(maker) {
 /**
  * Output tag name for dynamic entry.
  * @param out	Stream to output to.
- * @param entry	Dynamic entry containing the tag.
+ * @param tag	Dynamic entry tag.
  */
-void ArchPlugin::outputDynTag(io::Output& out, Elf32_Dyn entry) {
-	out << format(address_32, entry.d_tag);
+void ArchPlugin::outputDynTag(io::Output& out, int tag) {
+	out << format(address_32, tag);
 }
 
 /**
  * Output the value for dynamic entry.
  * @param out	Stream to output to.
- * @param entry	Dynamic entry containing the tag.
- * @param buf	Buffer to the linked section (possibly containing data of the entry).
+ * @param tag	Dynamic entry tag.
+ * @param val	Dynamic entry value.
  */
-void ArchPlugin::outputDynValue(io::Output& out, Elf32_Dyn entry, const Buffer& buf) {
-	out << format(address_32, entry.d_un.d_val);
+void ArchPlugin::outputDynValue(io::Output& out, int tag, t::uint64 val) {
+	out << format(address_32, val);
 }
 
 /**

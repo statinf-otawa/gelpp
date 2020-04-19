@@ -100,6 +100,7 @@ protected:
 	void loadProgramHeaders(Vector<ProgramHeader *>& headers) override;
 	void loadSections(Vector<Section *>& sections) override;
 	int getStrTab() override;
+	void fetchDyn(const t::uint8 *entry, dyn_t& dyn) override;
 
 private:
 	Elf64_Ehdr *h;

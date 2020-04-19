@@ -37,8 +37,8 @@ public:
 
 	ArchPlugin(const make& maker);
 
-	virtual void outputDynTag(io::Output& out, Elf32_Dyn entry);
-	virtual void outputDynValue(io::Output& out, Elf32_Dyn entry, const gel::Buffer& buf);
+	virtual void outputDynTag(io::Output& out, int tag);
+	virtual void outputDynValue(io::Output& out, int tag, t::uint64 entry);
 };
 
 } }	// gel::elf

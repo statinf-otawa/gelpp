@@ -159,10 +159,11 @@ public:
 
 	inline bool ended(void) const { return off >= buf.size(); }
 	inline operator bool(void) const { return !ended(); }
-	inline bool avail(size_t s) { return off + s <= buf.size(); }
+	inline bool avail(size_t s) const { return off + s <= buf.size(); }
 	inline const t::uint8 *here(void) const { return buf.at(off); }
 	inline offset_t offset(void) const { return off; }
 	inline void finish(void) { off = buf.size(); }
+	inline bool equals(const Cursor& c) const { return off == c.off && buf.equals(c.buf); }
 
 	inline bool skip(size_t s) { if(!avail(s)) return false; off += s; return true; }
 	inline bool move(offset_t o) { if(o >= buf.size()) return false; off = o; return true; }

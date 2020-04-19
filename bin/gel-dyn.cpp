@@ -119,42 +119,31 @@ private:
 			"PREINIT_ARRAYSZ",
 			"SYMTAB_SHNDX"
 		};
-#	if 0
+
 		// get the plugin
-		elf::ArchPlugin *plug = elf::ArchPlugin::plug(file->info().e_machine);
+		elf::ArchPlugin *plug = elf::ArchPlugin::plug(file->machine());
 
 		// look all sections
-		for(elf::File::SecIter s = file->sections(); s(); s++)
-
-			// display the dynamics
-			if(s->info().sh_type == SHT_DYNAMIC) {
-
-				// prepare data
-				Buffer buf = s->buffer();
-				if(int(s->info().sh_link) >= file->sectionCount())
-					throw gel::Exception("bad string table in dynamic");
-				Buffer sbuf = file->sectionAt(s->info().sh_link)->buffer();
-
-				// traverse the entries
-				for(offset_t off = 0; off + s->info().sh_entsize <= buf.size(); off += s->info().sh_entsize) {
-					const elf::Elf32_Dyn *e = (const elf::Elf32_Dyn *)buf.at(off);
-					if(e->d_tag == DT_NULL)
-						break;
-					if(e->d_tag >= DT_COUNT) {
+		for(auto s: file->sections())
+			if(s->type() == SHT_DYNAMIC)
+				for(const auto& dyn: file->dyns(s)) {
+					if(dyn.tag == DT_NULL)
+						continue;
+					if(dyn.tag >= DT_COUNT) {
 						if(plug != nullptr) {
 							StringBuffer sbuf;
-							plug->outputDynTag(sbuf, *e);
+							plug->outputDynTag(sbuf, dyn.tag);
 							cout << io::fmt(sbuf.toString()).width(width);
 							cout << ": ";
-							plug->outputDynValue(cout, *e, buf);
+							plug->outputDynValue(cout, dyn.tag,  dyn.un.val);
 							cout << io::endl;
 						}
 						else
-							cout << file->format(e->d_tag) << ": " << file->format(e->d_un.d_val) << io::endl;
+							cout << file->format(dyn.tag) << ": " << file->format(dyn.un.val) << io::endl;
 					}
 					else {
-						cout << io::fmt(labels[e->d_tag]).width(width) << ": ";
-						switch(e->d_tag) {
+						cout << io::fmt(labels[dyn.tag]).width(width) << ": ";
+						switch(dyn.tag) {
 						case DT_NULL:
 						case DT_SYMBOLIC:
 						case DT_TEXTREL:
@@ -164,13 +153,7 @@ private:
 						case DT_SONAME:
 						case DT_RPATH:
 						case DT_RUNPATH:
-							if(e->d_un.d_val >= sbuf.size())
-								throw gel::Exception(_ << "bad string offset in " << e->d_tag);
-							else {
-								cstring s;
-								sbuf.get(e->d_un.d_val, s);
-								cout << s;
-							}
+							cout << file->stringAt(dyn.un.val, s->link());
 							break;
 						case DT_PLTRELSZ:
 						case DT_RELASZ:
@@ -183,11 +166,11 @@ private:
 						case DT_INIT_ARRAYSZ:
 						case DT_FINI_ARRAYSZ:
 						case DT_PREINIT_ARRAYSZ:
-							cout << e->d_un.d_val;
+							cout << dyn.un.val;
 							break;
+						case DT_STRTAB:
 						case DT_PLTGOT:
 						case DT_HASH:
-						case DT_STRTAB:
 						case DT_SYMTAB:
 						case DT_RELA:
 						case DT_INIT:
@@ -199,25 +182,19 @@ private:
 						case DT_FINI_ARRAY:
 						case DT_PREINIT_ARRAY:
 						case DT_SYMTAB_SHNDX:
-							cout << file->format(e->d_un.d_ptr);
+							cout << file->format(dyn.un.ptr);
 							break;
 						case DT_FLAGS:
-							if((e->d_un.d_val & DF_ORIGIN)		!= 0)	cout << "ORIGIN ";
-							if((e->d_un.d_val & DF_SYMBOLIC)	!= 0)	cout << "SYMBOLIC ";
-							if((e->d_un.d_val & DF_TEXTREL) 	!= 0)	cout << "TEXTREL ";
-							if((e->d_un.d_val & DF_BIND_NOW)	!= 0)	cout << "BIND_NOW ";
-							if((e->d_un.d_val & DF_STATIC_TLS)	!= 0)	cout << "STATIC_TLS ";
+							if((dyn.un.val & DF_ORIGIN)		!= 0)	cout << "ORIGIN ";
+							if((dyn.un.val & DF_SYMBOLIC)	!= 0)	cout << "SYMBOLIC ";
+							if((dyn.un.val & DF_TEXTREL) 	!= 0)	cout << "TEXTREL ";
+							if((dyn.un.val & DF_BIND_NOW)	!= 0)	cout << "BIND_NOW ";
+							if((dyn.un.val & DF_STATIC_TLS)	!= 0)	cout << "STATIC_TLS ";
 							break;
 						}
 						cout << io::endl;
 					}
 				}
-
-			}
-		// release the plugin
-		if(plug != nullptr)
-			plug->unplug();
-#	endif
 	}
 
 	Vector<string> args;

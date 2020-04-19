@@ -108,6 +108,15 @@ typedef struct Elf64_Phdr {
 	Elf64_Xword p_align;
 } Elf64_Phdr;
 
+// Dynamic Table Structure
+typedef struct Elf64_Dyn {
+  Elf64_Sxword d_tag;
+  union {
+    Elf64_Xword d_val;
+    Elf64_Addr d_ptr;
+  } d_un;
+} Elf64_Dyn;
+
 } }		// gel::elf
 
 #endif	/* GEL_ELF_DEFS64_H */

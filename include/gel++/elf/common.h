@@ -144,6 +144,51 @@ namespace gel { namespace elf {
 #define PF_MASKOS	0x00FF0000
 #define PF_MASKPROC	0xFF000000
 
+// Dynamic Table Entries
+#define DT_NULL		 		0
+#define DT_NEEDED 	 		1	/* d_val */
+#define DT_PLTRELSZ	 		2	/* d_val */
+#define DT_PLTGOT	 		3	/* d_ptr */
+#define DT_HASH		 		4	/* d_ptr */
+#define DT_STRTAB	 		5	/* d_ptr */
+#define DT_SYMTAB	 		6	/* d_ptr */
+#define DT_RELA		 		7	/* d_ptr */
+#define DT_RELASZ	 		8	/* d_val */
+#define DT_RELAENT	 		9	/* d_val */
+#define DT_STRSZ			10	/* d_val */
+#define DT_SYMENT			11	/* d_val */
+#define DT_INIT				12	/* d_ptr */
+#define DT_FINI				13	/* d_ptr */
+#define DT_SONAME			14	/* d_val */
+#define DT_RPATH			15	/* d_val */
+#define DT_SYMBOLIC			16
+#define DT_REL				17	/* d_ptr */
+#define DT_RELSZ			18	/* d_val */
+#define DT_RELENT			19	/* d_val */
+#define DT_PLTREL			20	/* d_val */
+#define DT_DEBUG			21	/* d_ptr */
+#define DT_TEXTREL			22
+#define DT_JMPREL			23	/* d_ptr */
+#define DT_BIND_NOW			24
+#define DT_INIT_ARRAY		25	/* d_ptr */
+#define DT_FINI_ARRAY		26	/* d_ptr */
+#define DT_INIT_ARRAYSZ		27	/* d_val */
+#define DT_FINI_ARRAYSZ		28	/* d_val */
+
+// no more in documentation?
+#define DT_RUNPATH			29	/* d_val */
+#define DT_FLAGS			30	/* d_val */
+#define DT_ENCODING			32
+#define DT_PREINIT_ARRAY	32	/* d_ptr */
+#define DT_PREINIT_ARRAYSZ	33	/* d_val */
+#define DT_SYMTAB_SHNDX		34	/* d_ptr */
+#define DT_COUNT			35
+// end no more
+
+#define DT_LOOS		0x60000000
+#define DT_HIOS		0x6fffffff
+#define DT_LOPROC	0x70000000
+#define DT_HIPROC	0x7fffffff
 
 // useful macros
 #define SWAP2(x) ((((x) & 0xFF) << 8) | (((x) & 0xFF00 ) >> 8))

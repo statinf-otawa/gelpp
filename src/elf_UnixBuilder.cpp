@@ -384,7 +384,6 @@ Image *UnixBuilder::build(void) {
 	// build the stack
 	buildStack();
 
-
 	// clean up
 	return _im;
 }
@@ -570,9 +569,6 @@ ImageSegment *UnixBuilder::buildStack(void) {
  */
 void UnixBuilder::link(File *file, address_t base) {
 	// TODO
-#if 0
-	}
-#endif
 }
 
 } }		// gel::elf

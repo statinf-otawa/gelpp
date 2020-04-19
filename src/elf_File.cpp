@@ -453,6 +453,31 @@ void NoteIter::next(void) {
  */
 
 
+/**
+ * @class DynIter
+ * Iterator on the dynamic entries of a section.
+ */
+
+///
+File::DynIter::DynIter(File& file, Section *sec, bool ended): EntryIter(file, sec, ended) {
+	if(ended)
+		c.finish();
+	else if(!c.ended())
+		f.fetchDyn(c.here(), d);
+}
+
+Range<File::DynIter> File::dyns() {
+	for(auto s: sects)
+		if(s->type() == SHT_DYNAMIC)
+			return dyns(s);
+	ASSERT(false);
+}
+
+Range<File::DynIter> File::dyns(Section *sect) {
+	return range(DynIter(*this, sect), DynIter(*this, sect, true));
+}
+
+
 #if 0
 /**
  * @class SymbolIter;

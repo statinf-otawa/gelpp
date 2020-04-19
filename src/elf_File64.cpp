@@ -192,6 +192,16 @@ int File64::getStrTab() {
 
 
 ///
+void File64::fetchDyn(const t::uint8 *entry, dyn_t& dyn) {
+	auto e = *reinterpret_cast<const Elf64_Dyn *>(entry);
+	fix(e.d_tag);
+	fix(e.d_un.d_val);
+	dyn.tag = e.d_tag;
+	dyn.un.val = e.d_un.d_val;
+}
+
+
+///
 class Symbol64: public Symbol {
 public:
 	inline Symbol64(cstring name, Elf64_Sym *info): Symbol(name), _info(info) { }
