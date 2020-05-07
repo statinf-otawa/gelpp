@@ -2,6 +2,7 @@
 # main library
 add_library(gel++ SHARED
 	elf_ArchPlugin.cpp
+	elf_DebugLine.cpp
 	elf_File.cpp
 	elf_File32.cpp
 	elf_File64.cpp

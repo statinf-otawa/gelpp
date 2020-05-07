@@ -135,6 +135,7 @@ public:
 	Vector<Section *>& sections(void);
 	inline Section *sectionAt(int i) const { return sects[i]; }
 	inline int sectionCount(void) const { return sects.count(); }
+	Section *findSection(cstring name);
 
 	typedef Vector<ProgramHeader *>::Iter ProgIter;
 	Vector<ProgramHeader *>& programHeaders(void);

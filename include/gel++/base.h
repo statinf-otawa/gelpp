@@ -164,9 +164,10 @@ public:
 	inline offset_t offset(void) const { return off; }
 	inline void finish(void) { off = buf.size(); }
 	inline bool equals(const Cursor& c) const { return off == c.off && buf.equals(c.buf); }
+	inline size_t size() const { return buf.size(); }
 
 	inline bool skip(size_t s) { if(!avail(s)) return false; off += s; return true; }
-	inline bool move(offset_t o) { if(o >= buf.size()) return false; off = o; return true; }
+	inline bool move(offset_t o) { if(o > buf.size()) return false; off = o; return true; }
 
 	inline bool read(t::uint8& v)
 		{ if(!avail(sizeof(t::uint8))) return false; buf.get(off, v); off += sizeof(t::uint8); return true; }

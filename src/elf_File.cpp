@@ -269,6 +269,19 @@ Vector<Section *>& File::sections(void) {
 
 
 /**
+ * Find a section by its name.
+ * @param name	Name of the looked section.
+ * @return		Found section or null pointer.
+ */
+Section *File::findSection(cstring name) {
+	for(auto s: sections())
+		if(s->name() == name)
+			return s;
+	return nullptr;
+}
+
+
+/**
  * @class Section
  * A section in an ELF file.
  * @ingroup elf
@@ -473,65 +486,11 @@ Range<File::DynIter> File::dyns() {
 		if(s->type() == SHT_DYNAMIC)
 			return dyns(s);
 	ASSERT(false);
+	return dyns(nullptr);
 }
 
 Range<File::DynIter> File::dyns(Section *sect) {
 	return range(DynIter(*this, sect), DynIter(*this, sect, true));
 }
-
-
-#if 0
-/**
- * @class SymbolIter;
- * Iterator on the symbols contained in a section. Given sections must be of type
- * SHT_SYMTAB or SHT_DYNSYM.
- */
-
-/**
- */
-SymbolIter::SymbolIter(File& file, Section& section): f(file), s(section), c(section.content()) {
-	ASSERT(section.type() == SHT_SYMTAB || section.type() == SHT_DYNSYM);
-}
-
-/**
- * @fn bool SymbolIter::ended(void) const;
- * Test if the iterator is ended.
- */
-
-/**
- * @fn const Elf32_Sym& SymbolIter::item(void) const;
- * Get the current symbol.
- */
-
-/**
- * Move to next symbol.
- */
-void SymbolIter::next(void) {
-	c.skip(sizeof(Elf32_Sym));
-}
-
-/**
- * Get name of the symbol.
- */
-cstring SymbolIter::name(void) {
-	if(names.isNull()) {
-
-		// find string section number
-		int sn;
-		if(!s.link())
-			sn = f.info().e_shstrndx;
-		else
-			sn = s.link();
-
-		// get the section and the buffer
-		if(sn == 0 || sn >= f.sections().length())
-			throw Exception(_ << "bad number for symbol table string section in " << s.name());
-		names = f.sections()[sn]->content();
-	}
-	cstring r;
-	names.get(item().st_name, r);
-	return r;
-}
-#	endif
 
 } }	// gel::elf
