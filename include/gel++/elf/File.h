@@ -85,23 +85,23 @@ private:
 	t::uint8 *buf;
 };
 
-class Symbol {
+class Symbol: public gel::Symbol {
 public:
 	inline Symbol(cstring name): _name(name) { }
 	virtual ~Symbol();
-	inline cstring name() const { return _name; };
-	virtual t::uint64 value() = 0;
-	virtual t::uint64 size() = 0;
-	virtual t::uint8 bind() = 0;
-	virtual t::uint8 type()  = 0;
+
+	virtual t::uint8 elfBind() = 0;
+	virtual t::uint8 elfType()  = 0;
 	virtual int shndx() = 0;
+
+	cstring name() override;
 
 protected:
 	cstring _name;
 };
 
 
-class SymbolTable: public HashMap<cstring, Symbol *> {
+class SymbolTable: public gel::SymbolTable {
 public:
 	~SymbolTable();
 	void record(t::uint8 *mem);
@@ -145,7 +145,7 @@ public:
 	cstring stringAt(t::uint64 offset);
 	cstring stringAt(t::uint64 offset, int sect);
 
-	const SymbolTable& symbols();
+	const gel::SymbolTable& symbols();
 	virtual void fillSymbolTable(SymbolTable& symtab, Section *sect) = 0;
 
 	// gel::File overload

@@ -21,6 +21,7 @@
 #define GELPP_FILE_H_
 
 #include <elm/data/Array.h>
+#include <elm/data/HashMap.h>
 #include <elm/sys/Path.h>
 #include <gel++/base.h>
 
@@ -49,6 +50,38 @@ public:
 	virtual Buffer buffer(void) = 0;
 };
 
+class Symbol {
+public:
+	enum type_t {
+		NO_TYPE = 0,
+		OTHER_TYPE = 1,
+		FUNC = 2,
+		DATA = 3
+	};
+
+	enum bind_t {
+		NO_BIND = 0,
+		OTHER_BIND = 1,
+		LOCAL = 2,
+		GLOBAL = 3,
+		WEAK = 4
+	};
+
+	virtual ~Symbol();
+	virtual cstring name() = 0;
+	virtual t::uint64 value() = 0;
+	virtual t::uint64 size() = 0;
+	virtual type_t type() = 0;
+	virtual bind_t bind() = 0;
+};
+
+
+class SymbolTable: public HashMap<cstring, Symbol *> {
+public:
+	virtual ~SymbolTable();
+};
+
+
 class File {
 public:
 	typedef enum {
@@ -75,6 +108,8 @@ public:
 	virtual Segment *segment(int i) = 0;
 	virtual Image *make();
 	virtual Image *make(const Parameter& params) = 0;
+
+	virtual const SymbolTable& symbols() = 0;
 
 protected:
 	Manager& man;

@@ -61,13 +61,15 @@ public:
 					if(sect->type() == SHT_SYMTAB || sect->type() == SHT_DYNAMIC) {
 						cout << "SECTION " << sect->name() << io::endl;
 						cout << "st_value st_size  binding type    st_shndx         name\n";
-						for(auto sym: f->symbols())
+						for(auto s: f->symbols()) {
+							auto sym = static_cast<elf::Symbol *>(s);
 							cout <<	word_fmt(sym->value())						<< ' '
 								 << word_fmt(sym->size()) 						<< ' '
 								 << io::fmt(sym->size()).width(7)				<< ' '
-								 << io::fmt(sym->type()).width(7)				<< ' '
+								 << io::fmt(sym->elfType()).width(7)			<< ' '
 								 << io::fmt(get_section_index(f, *sym)).width(16)	<< ' '
 								 << sym->name()										<< io::endl;
+						}
 					}
 				}
 				delete f;

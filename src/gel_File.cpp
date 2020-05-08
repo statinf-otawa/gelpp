@@ -22,6 +22,95 @@
 
 namespace gel {
 
+
+/**
+ * @class Symbol
+ * This class represents a symbol found in an executable file.
+ * A symbol is defined by its name, its value and other properties
+ * like the size (for a memory object), the type (type of object)
+ * and the binding (visibility of the symbol).
+ */
+
+/**
+ * @enum Symbol::type_t
+ * Describes the type of the symbol.
+ *
+ * @var Symbol::type_t Symbol::NO_TYPE
+ * No symbol type.
+ *
+ * @var Symbol::type_t Symbol::OTHER_TYPE
+ * Any unknown symbol type.
+ *
+ * @var Symbol::type_t Symbol::FUNC
+ * Function type.
+ *
+ * @var Symbol::type_t Symbol::DATA
+ * Data type.
+ */
+
+/**
+ * @enum Symbol::bind_t
+ * Describes the binding (visibility) of the symbol.
+ *
+ * @var Symbol::bind_t Symbol::NO_BIND
+ * No binding for this symbol.
+ *
+ * @var Symbol::bind_t Symbol::OTHER_BIND
+ * Other type of binding.
+ *
+ * @var Symbol::bind_t Symbol::LOCAL
+ * Binding local to the unit.
+ *
+ * @var Symbol::bind_t Symbol::GLOBAL
+ * Binding global over the current execution image.
+ *
+ * @var Symbol::bind_t Symbol::WEAK
+ * Like global binding but the symbol is hidden if there is another
+ * symbol with same name.
+ */
+
+///
+Symbol::~Symbol() {
+}
+
+/**
+ * @fn cstring Symbol::name();
+ * @return	Name of the symbol.
+ */
+
+/**
+ * @fn t::uint64 Symbol::value();
+ * @return	Value of the symbol (address for type FUNC and DATA).
+ */
+
+/**
+ * @fn t::uint64 Symbol::size();
+ * @return	Size of the symbol (if any).
+ */
+
+/**
+ * @fn Symbol::type_t Symbol::type();
+ * @return	Type of the symbol.
+ */
+
+/**
+ * @fn Symbol::bind_t Symbol::bind();
+ * @return	Binding of the symbol.
+ */
+
+
+/**
+ * @class SymbolTable
+ * Represents the table of symbols for an executable file.
+ * This class is basically a hash map with the symbol name as keys.
+ * All facilities of an ELM class map are provided.
+ */
+
+///
+SymbolTable::~SymbolTable() {
+}
+
+
 /**
  * @class Segment
  * A segment represents a unit of the execution image.
@@ -107,6 +196,15 @@ File::File(Manager& manager, sys::Path path): man(manager), _path(path) {
  */
 File::~File(void) {
 }
+
+
+/**
+ * const SymbolTable& File::symbols();
+ * Get the table of symbols found from the current file. This function has to be implemented
+ * by the class actually implemented a File.
+ *
+ * @return	Symbol table for the file.
+ */
 
 
 /**

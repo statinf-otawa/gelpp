@@ -205,11 +205,31 @@ void File64::fetchDyn(const t::uint8 *entry, dyn_t& dyn) {
 class Symbol64: public Symbol {
 public:
 	inline Symbol64(cstring name, Elf64_Sym *info): Symbol(name), _info(info) { }
+
+	t::uint8 elfBind()	override { return ELF64_ST_BIND(_info->st_info); }
+	t::uint8 elfType()	override { return ELF64_ST_TYPE(_info->st_info); }
+	int shndx()			override { return _info->st_shndx; }
+
 	t::uint64 value()	override { return _info->st_value; }
 	t::uint64 size()	override { return _info->st_size; }
-	t::uint8 bind()		override { return ELF64_ST_BIND(_info->st_info); }
-	t::uint8 type()		override { return ELF64_ST_TYPE(_info->st_info); }
-	int shndx()			override { return _info->st_shndx; }
+
+	type_t type() override {
+		switch(ELF32_ST_TYPE(_info->st_info)) {
+		case STT_OBJECT:	return DATA;
+		case STT_FUNC:		return FUNC;
+		default:			return OTHER_TYPE;
+		}
+	}
+
+	bind_t bind() override {
+		switch(ELF32_ST_BIND(_info->st_info)) {
+		case STB_LOCAL:		return LOCAL;
+		case STB_GLOBAL:	return GLOBAL;
+		case STB_WEAK:		return WEAK;
+		default:			return OTHER_BIND;
+		}
+	}
+
 private:
 	Elf64_Sym *_info;
 };

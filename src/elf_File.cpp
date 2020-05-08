@@ -120,7 +120,7 @@ File::~File(void) {
  * Get the map of symbols of the file.
  * @return	Map of symbols.
  */
-const SymbolTable& File::symbols() {
+const gel::SymbolTable& File::symbols() {
 	if(syms == nullptr) {
 		syms = new SymbolTable();
 		initSections();
@@ -365,6 +365,11 @@ Buffer ProgramHeader::content(void) {
 ///
 Symbol::~Symbol() {
 };
+
+///
+cstring Symbol::name() {
+	return _name;
+}
 
 
 /**
