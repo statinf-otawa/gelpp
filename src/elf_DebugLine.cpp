@@ -18,7 +18,8 @@
  */
 
 #include <elm/data/util.h>
-#include <gel++/elf/DebugLine.h>
+
+#include "../include/gel++/elf/DebugLineNumber.h"
 
 namespace gel { namespace elf {
 
@@ -96,57 +97,57 @@ void DebugLine::File::find(int line, Vector<Pair<address_t, address_t> >& addrs)
 
 
 /**
- * @class DebugLine::Line
+ * @class DebugLine::LineNumber
  * Represents a line of code information in the source line table.
  */
-DebugLine::Line::Line(address_t addr, File *file, int line, int col,
+DebugLine::LineNumber::LineNumber(address_t addr, File *file, int line, int col,
 t::uint32 flags, t::uint8 isa, t::uint8 desc, t::uint8 opi)
 	: _file(file), _line(line), _col(col), _flags(flags),
 	  _addr(addr), _isa(isa), _disc(desc), _opi(opi) { }
 
 /**
- * @fn DebugLine::File *DebugLine::Line::file() const;
+ * @fn DebugLine::File *DebugLine::LineNumber::file() const;
  * Get the source file corresponding to the code.
  * @return	Code source file.
  */
 
 /**
- * @fn int DebugLine::Line::line() const;
+ * @fn int DebugLine::LineNumber::line() const;
  * Get the source line corresponding to this code.
  * @return	Source line of the corresponding code.
  */
 
 /**
- * @fn int DebugLine::Line::code() const;
+ * @fn int DebugLine::LineNumber::code() const;
  * Get the source column corresponding to this code.
  * @return	Source column of the corresponding code.
  */
 
 /**
- * @fn t::uint32 DebugLine::Line::flags() const;
+ * @fn t::uint32 DebugLine::LineNumber::flags() const;
  * Get flags about this code.
  * @return	Code flags (combination of IS_STMT, BASIC_BLOCK, PROLOGUE_END
  * 			and EPILOGUE_BEGIN).
  */
 
 /**
- * @fn address_t DebugLine::Line::addr() const;
+ * @fn address_t DebugLine::LineNumber::addr() const;
  * Get the base address of this piece of code.
  * @return	Base address.
  */
 
 /**
- * @fn t::uint8 DebugLine::Line::isa() const;
+ * @fn t::uint8 DebugLine::LineNumber::isa() const;
  * Get the ISA of instructions used in this code.
  * @return	ISA code.
  */
 
 /**
- * @fn t::uint8 DebugLine::Line::discriminator();
+ * @fn t::uint8 DebugLine::LineNumber::discriminator();
  */
 
 /**
- * @fn t::uint8 DebugLine::Line::op_index() const;
+ * @fn t::uint8 DebugLine::LineNumber::op_index() const;
  * Get the operation index of the instruction starting this code
  * (only meaningful for VLIW architecture).
  * @return	Operation index.
@@ -289,8 +290,8 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	t::uint8 default_is_stmt;
 	c.read(default_is_stmt);
 	if(default_is_stmt)
-		sm.set(Line::IS_STMT);
-	DEBUG("default_is_stmt = " << sm.bit(Line::IS_STMT));
+		sm.set(LineNumber::IS_STMT);
+	DEBUG("default_is_stmt = " << sm.bit(LineNumber::IS_STMT));
 	c.read(sm.line_base);
 	DEBUG("line base = " << sm.line_base);
 	c.read(sm.line_range);
@@ -363,13 +364,13 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 				sm.column = readLEB128U(c);
 				break;
 			case DW_LNS_negate_stmt:
-				if(sm.bit(Line::IS_STMT))
-					sm.clear(Line::IS_STMT);
+				if(sm.bit(LineNumber::IS_STMT))
+					sm.clear(LineNumber::IS_STMT);
 				else
-					sm.set(Line::IS_STMT);
+					sm.set(LineNumber::IS_STMT);
 				break;
 			case DW_LNS_set_basic_block:
-				sm.set(Line::BASIC_BLOCK);
+				sm.set(LineNumber::BASIC_BLOCK);
 				break;
 			case DW_LNS_const_add_pc:
 				advancePC(sm, cu, (255 - sm.opcode_base) / sm.line_range);
@@ -383,10 +384,10 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 				}
 				break;
 			case DW_LNS_set_prologue_end:
-				sm.set(Line::PROLOGUE_END);
+				sm.set(LineNumber::PROLOGUE_END);
 				break;
 			case DW_LNS_set_epilogue_begin:
-				sm.set(Line::EPILOGUE_BEGIN);
+				sm.set(LineNumber::EPILOGUE_BEGIN);
 				break;
 			case DW_LNS_set_isa:
 				sm.isa = readLEB128U(c);
@@ -443,11 +444,11 @@ void DebugLine::recordLine(StateMachine& sm, CompilationUnit *cu) {
 		 << file->path() << ":" << sm.line << ":" << sm.column);
 
 	// record the line
-	cu->_lines.add(Line(sm.address, file, sm.line,
+	cu->_lines.add(LineNumber(sm.address, file, sm.line,
 		sm.column, sm.flags, sm.isa, sm.discriminator, sm.op_index));
 
 	// update the SM
-	sm.set(Line::BASIC_BLOCK | Line::PROLOGUE_END | Line::EPILOGUE_BEGIN);
+	sm.set(LineNumber::BASIC_BLOCK | LineNumber::PROLOGUE_END | LineNumber::EPILOGUE_BEGIN);
 	sm.discriminator = 0;
 
 	// record the line number

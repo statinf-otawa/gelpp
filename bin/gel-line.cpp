@@ -21,7 +21,8 @@
 #include <elm/options.h>
 #include <elm/data/FragTable.h>
 #include <elm/data/HashMap.h>
-#include <gel++/elf/DebugLine.h>
+
+#include "../include/gel++/elf/DebugLineNumber.h"
 
 using namespace elm;
 using namespace elm::option;

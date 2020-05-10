@@ -413,6 +413,7 @@ File *UnixBuilder::open(sys::Path path) {
 		return nullptr;
 	}
 #	endif
+	return nullptr;
 }
 
 

@@ -55,7 +55,7 @@ public:
 		List<CompilationUnit *> _units;
 	};
 
-	class Line {
+	class LineNumber {
 	public:
 		static const t::uint32
 			IS_STMT			= 1 << 0,
@@ -63,11 +63,11 @@ public:
 			PROLOGUE_END	= 1 << 2,
 			EPILOGUE_BEGIN	= 1 << 3;
 
-		inline Line()
+		inline LineNumber()
 			: _file(nullptr), _line(0), _col(0), _flags(0), _addr(0), _isa(0),
 			  _disc(0), _opi(0) { }
 
-		Line(address_t addr, File *file, int line, int col = 0,
+		LineNumber(address_t addr, File *file, int line, int col = 0,
 		t::uint32 flags = 0, t::uint8 isa = 0, t::uint8 desc = 0, t::uint8 opi = 0);
 
 		inline File *file() const { return _file; }
@@ -90,11 +90,11 @@ public:
 	class CompilationUnit {
 		friend class DebugLine;
 	public:
-		const FragTable<Line>& lines() const { return _lines; }
+		const FragTable<LineNumber>& lines() const { return _lines; }
 		const Vector<File *>& files() const { return _files; }
 	private:
 		Vector<File *> _files;
-		FragTable<Line> _lines;
+		FragTable<LineNumber> _lines;
 	};
 
 	class StateMachine {
