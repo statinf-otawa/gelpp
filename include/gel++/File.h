@@ -81,6 +81,7 @@ public:
 	virtual ~SymbolTable();
 };
 
+class DebugLine;
 
 class File {
 public:
@@ -110,6 +111,7 @@ public:
 	virtual Image *make(const Parameter& params) = 0;
 
 	virtual const SymbolTable& symbols() = 0;
+	virtual DebugLine *debugLines();
 
 protected:
 	Manager& man;

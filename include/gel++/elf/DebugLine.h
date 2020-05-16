@@ -25,77 +25,14 @@
 #include <gel++/elf/File.h>
 #include <gel++.h>
 #include <gel++/elf/ArchPlugin.h>
+#include <gel++/DebugLine.h>
 
 namespace gel { namespace elf {
 
 using namespace elm;
 
-class DebugLine {
+class DebugLine: public gel::DebugLine {
 public:
-
-	class CompilationUnit;
-
-	class File {
-		friend class DebugLine;
-	public:
-		inline File(): _date(0), _size(0) { }
-		inline File(sys::Path path, t::uint64 date = 0, size_t size = 0):
-			_path(path), _date(date), _size(size) { }
-
-		inline const sys::Path& path() const { return _path; }
-		inline t::uint64 date() const { return _date; }
-		inline size_t size() const { return _size; }
-		inline const List<CompilationUnit *>& units() const { return _units; }
-		void find(int line, Vector<Pair<address_t, address_t> >& addrs) const;
-
-	private:
-		sys::Path _path;
-		t::uint64 _date;
-		size_t _size;
-		List<CompilationUnit *> _units;
-	};
-
-	class LineNumber {
-	public:
-		static const t::uint32
-			IS_STMT			= 1 << 0,
-			BASIC_BLOCK		= 1 << 1,
-			PROLOGUE_END	= 1 << 2,
-			EPILOGUE_BEGIN	= 1 << 3;
-
-		inline LineNumber()
-			: _file(nullptr), _line(0), _col(0), _flags(0), _addr(0), _isa(0),
-			  _disc(0), _opi(0) { }
-
-		LineNumber(address_t addr, File *file, int line, int col = 0,
-		t::uint32 flags = 0, t::uint8 isa = 0, t::uint8 desc = 0, t::uint8 opi = 0);
-
-		inline File *file() const { return _file; }
-		inline int line() const { return _line; }
-		inline int col() const { return _col; }
-		inline t::uint32 flags() const { return _flags; }
-		inline address_t addr() const { return _addr; }
-		inline t::uint8 isa() const { return _isa; }
-		inline t::uint8 discriminator() const { return _disc; }
-		inline t::uint8 op_index() const { return _opi; }
-
-	private:
-		File *_file;
-		int _line, _col;
-		t::uint32 _flags;
-		address_t _addr;
-		t::uint8 _isa, _disc, _opi;
-	};
-
-	class CompilationUnit {
-		friend class DebugLine;
-	public:
-		const FragTable<LineNumber>& lines() const { return _lines; }
-		const Vector<File *>& files() const { return _files; }
-	private:
-		Vector<File *> _files;
-		FragTable<LineNumber> _lines;
-	};
 
 	class StateMachine {
 	public:
@@ -125,10 +62,6 @@ public:
 	};
 
 	DebugLine(elf::File *efile);
-	~DebugLine();
-
-	inline const HashMap<sys::Path, File *>& files() const { return _files; }
-	inline const FragTable<CompilationUnit *>& units() const { return _cus; }
 
 private:
 	void readCU(Cursor& c);
@@ -146,10 +79,7 @@ private:
 		{ if(cond) throw gel::Exception("debug line error"); }
 	address_t readAddress(Cursor& c);
 
-	elf::File& prog;
 	int addr_size, length_size;
-	FragTable<CompilationUnit *> _cus;
-	HashMap<sys::Path, File *> _files;
 };
 
 } }	// gel::elf

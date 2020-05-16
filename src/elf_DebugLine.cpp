@@ -19,11 +19,11 @@
 
 #include <elm/data/util.h>
 
-#include "../include/gel++/elf/DebugLineNumber.h"
+#include "../include/gel++/elf/DebugLine.h"
 
 namespace gel { namespace elf {
 
-//#define DO_DEBUG
+#define DO_DEBUG
 #define DEBUG_OUT(txt)	cerr << "DEBUG: " << txt << io::endl;
 #ifdef DO_DEBUG
 #	define DEBUG(txt)	DEBUG_OUT(txt)
@@ -52,130 +52,6 @@ namespace gel { namespace elf {
 #define DW_LNE_set_discriminator	4		/* DWARF-4 */
 
 /**
- * @class DebugLine::File
- * This class represents a source file in the debugging source line/address map
- * provided by DebugLine.
- */
-
-/**
- * @fn const sys::Path& DebugLine::File::path() const;
- * Get the path of the source file (relative to the compilation location).
- * @return	Source file path.
- */
-
-/**
- * @fn t::uint64 DebugLine::File::date() const;
- * Get the last modification date of the file (for verification).
- * @return	Modification date.
- */
-
-/**
- * @fn size_t DebugLine::File::size() const;
- * Get the size of the source file (for verification).
- * @return	Source file size.
- */
-
-/**
- * @fn const List<DebugLine::CompilationUnit *>& DebugLine::File::units() const;
- * Get the compilation units using code from this source file.
- * @return	Compilation units using the source file.
- */
-
-/**
- * Find the address ranges corresponding to the given line number in the current file.
- * @param line	Looked line in the current source file.
- * @param addrs	Used to return the code ranges corresponding to the line.
- */
-void DebugLine::File::find(int line, Vector<Pair<address_t, address_t> >& addrs) const {
-	for(auto cu: _units) {
-		const auto& lines = cu->lines();
-		for(int i = 0; i < lines.count() - 1; i++)
-			if(lines[i].file() == this && lines[i].line() == line)
-				addrs.add(pair(lines[i].addr(), lines[i+1].addr()));
-	}
-}
-
-
-/**
- * @class DebugLine::LineNumber
- * Represents a line of code information in the source line table.
- */
-DebugLine::LineNumber::LineNumber(address_t addr, File *file, int line, int col,
-t::uint32 flags, t::uint8 isa, t::uint8 desc, t::uint8 opi)
-	: _file(file), _line(line), _col(col), _flags(flags),
-	  _addr(addr), _isa(isa), _disc(desc), _opi(opi) { }
-
-/**
- * @fn DebugLine::File *DebugLine::LineNumber::file() const;
- * Get the source file corresponding to the code.
- * @return	Code source file.
- */
-
-/**
- * @fn int DebugLine::LineNumber::line() const;
- * Get the source line corresponding to this code.
- * @return	Source line of the corresponding code.
- */
-
-/**
- * @fn int DebugLine::LineNumber::code() const;
- * Get the source column corresponding to this code.
- * @return	Source column of the corresponding code.
- */
-
-/**
- * @fn t::uint32 DebugLine::LineNumber::flags() const;
- * Get flags about this code.
- * @return	Code flags (combination of IS_STMT, BASIC_BLOCK, PROLOGUE_END
- * 			and EPILOGUE_BEGIN).
- */
-
-/**
- * @fn address_t DebugLine::LineNumber::addr() const;
- * Get the base address of this piece of code.
- * @return	Base address.
- */
-
-/**
- * @fn t::uint8 DebugLine::LineNumber::isa() const;
- * Get the ISA of instructions used in this code.
- * @return	ISA code.
- */
-
-/**
- * @fn t::uint8 DebugLine::LineNumber::discriminator();
- */
-
-/**
- * @fn t::uint8 DebugLine::LineNumber::op_index() const;
- * Get the operation index of the instruction starting this code
- * (only meaningful for VLIW architecture).
- * @return	Operation index.
- */
-
-
-/**
- * @class CompilationUnit
- * Represents a compilation unit involved in the build of an executable or
- * of a dynamic library.
- */
-
-/**
- * @fn const FragTable<DebugLine::Line>& DebugLine::CompilationUnit::lines() const;
- * Get the array of lines in the compilation unit. Notice that the last entry
- * of this array does not represent an actual line but provides the top address of
- * the previous line.
- * @return	Array of lines.
- */
-
-/**
- * @fn const Vector<DebugLine::File *>& DebugLine::CompilationUnit::files() const;
- * Get the list of source files involved in this compilation unit.
- * @return	List of compilation units.
- */
-
-
-/**
  * @class DebugLine::StateMachine
  * Only for internal use.
  */
@@ -190,14 +66,14 @@ t::uint32 flags, t::uint8 isa, t::uint8 desc, t::uint8 opi)
  * Build source line debug information for the given ELF file.
  * @param efile
  */
-DebugLine::DebugLine(elf::File *efile): prog(*efile) {
+DebugLine::DebugLine(elf::File *efile): gel::DebugLine(efile) {
 
 	// customize according to the type of file
-	if(prog.addressType() == address_32) {
+	if(efile->addressType() == address_32) {
 		addr_size = 4;
 		length_size = 4;
 	}
-	else if(prog.addressType() == address_64) {
+	else if(efile->addressType() == address_64) {
 		addr_size = 8;
 		length_size = 12;
 	}
@@ -205,7 +81,7 @@ DebugLine::DebugLine(elf::File *efile): prog(*efile) {
 		throw gel::Exception("unsupported address type");
 
 	// get the buffer
-	elf::Section *sect = prog.findSection(".debug_line");
+	elf::Section *sect = efile->findSection(".debug_line");
 	if(sect == nullptr)
 		return;
 	Cursor c(sect->content());
@@ -214,12 +90,6 @@ DebugLine::DebugLine(elf::File *efile): prog(*efile) {
 	DEBUG("reading (size =" << c.size() << ")");
 	while(!c.ended())
 		readCU(c);
-}
-
-///
-DebugLine::~DebugLine() {
-	deleteAll(_files);
-	deleteAll(_cus);
 }
 
 /**
@@ -256,7 +126,7 @@ void DebugLine::readCU(Cursor& c) {
 	}
 
 	// finalize
-	_cus.add(cu);
+	add(cu);
 	c.move(end_offset);
 }
 
@@ -266,7 +136,7 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	// skip version
 	t::uint16 version;
 	c.read(version);
-	prog.fix(version);
+	static_cast<elf::File&>(prog).fix(version);
 	DEBUG("version = " << version);
 	if(version > 4)
 		throw gel::Exception("DWARF version > 4");
@@ -278,10 +148,10 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 
 	// base information
 	c.read(sm.minimum_instruction_length);
-	DEBUG("min inst length = " << cu->minimum_instruction_length);
+	//DEBUG("min inst length = " << cu->minimum_instruction_length);
 	if(version >= 4) {
 		c.read(sm.maximum_operations_per_instruction);
-		DEBUG("max op per inst = " << cu->maximum_operations_per_instruction);
+		//DEBUG("max op per inst = " << cu->maximum_operations_per_instruction);
 	}
 	else
 		sm.maximum_operations_per_instruction = 1;
@@ -354,7 +224,7 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 			case DW_LNS_advance_line: {
 					auto l = readLEB128S(c);
 					advanceLine(sm, l);
-					DEBUG("advance line " << cu->_files[sm.file - 1]->path() << ":" << l << "@" << io::hex(sm.address) << " -> " << sm.line);
+					//DEBUG("advance line " << cu->_files[sm.file - 1]->path() << ":" << l << "@" << io::hex(sm.address) << " -> " << sm.line);
 				}
 				break;
 			case DW_LNS_set_file:
@@ -378,7 +248,7 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 			case DW_LNS_fixed_advance_pc: {
 					t::uint16 o;
 					error_if(!c.read(o));
-					prog.fix(o);
+					static_cast<elf::File&>(prog).fix(o);
 					sm.address += o;
 					sm.op_index = 0;
 				}
@@ -439,21 +309,17 @@ void DebugLine::advanceLine(StateMachine& sm, t::int64 adv) {
 }
 
 void DebugLine::recordLine(StateMachine& sm, CompilationUnit *cu) {
-	File *file = cu->_files[sm.file - 1];
+	File *file = cu->files()[sm.file - 1];
 	DEBUG("line " << io::hex(sm.address) << " "
 		 << file->path() << ":" << sm.line << ":" << sm.column);
 
 	// record the line
-	cu->_lines.add(LineNumber(sm.address, file, sm.line,
-		sm.column, sm.flags, sm.isa, sm.discriminator, sm.op_index));
+	cu->add(LineNumber(sm.address, file, sm.line,
+			sm.column, sm.flags, sm.isa, sm.discriminator, sm.op_index));
 
 	// update the SM
 	sm.set(LineNumber::BASIC_BLOCK | LineNumber::PROLOGUE_END | LineNumber::EPILOGUE_BEGIN);
 	sm.discriminator = 0;
-
-	// record the line number
-	if(!file->_units.contains(cu))
-		file->_units.add(cu);
 }
 
 bool DebugLine::readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
@@ -466,17 +332,22 @@ bool DebugLine::readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	auto size = readLEB128U(c);
 	DEBUG("file = " << s << ", " << dir << ", " << date << ", " << size);
 	sys::Path p;
-	if(dir == 0)
-		p = s;
-	else
+	if(dir == 0) {
+		p = sys::Path(".") / sys::Path(s);
+		cerr << "DEBUG: no dire: " << p << io::endl;
+	}
+	else {
+		cerr << "DEBUG: " << dir << ":" << sm.include_directories[dir] << io::endl;
 		p = sys::Path(sm.include_directories[dir]) / s;
-	File *f = _files.get(p, nullptr);
+		cerr << "DEBUG: p = " << p << io::endl;
+	}
+	cerr << "DEBUG: p = " << (void *)&p << ":" << p << io::endl;
+	File *f = files().get(p, nullptr);
 	if(f == nullptr) {
 		f = new File(p, date, size);
-		_files[p] = f;
+		add(f);
 	}
-	cu->_files.add(f);
-	f->_units.add(cu);
+	cu->add(f);
 	return true;
 }
 
@@ -484,13 +355,13 @@ size_t DebugLine::readHeaderLength(Cursor& c) {
 	if(addr_size == 4) {
 		t::uint32 l;
 		c.read(l);
-		prog.fix(l);
+		static_cast<elf::File&>(prog).fix(l);
 		return l;
 	}
 	else {
 		t::uint64 l;
 		c.read(l);
-		prog.fix(l);
+		static_cast<elf::File&>(prog).fix(l);
 		return l;
 	}
 }
@@ -501,14 +372,14 @@ size_t DebugLine::readUnitLength(Cursor& c) {
 	t::uint32 l;
 	error_if(!c.read(l));
 	if(addr_size == 4) {
-		prog.fix(l);
+		static_cast<elf::File&>(prog).fix(l);
 		return l;
 	}
 	if(l != 0xffffffffff)
 		throw gel::Exception("bad 64-bit length");
 	t::uint64 ll;
 	error_if(!c.read(ll));
-	prog.fix(ll);
+	static_cast<elf::File&>(prog).fix(ll);
 	return ll;
 }
 
@@ -542,13 +413,13 @@ address_t DebugLine::readAddress(Cursor& c) {
 	if(addr_size == 4) {
 		t::uint32 a;
 		error_if(!c.read(a));
-		prog.fix(a);
+		static_cast<elf::File&>(prog).fix(a);
 		return a;
 	}
 	else {
 		t::uint64 a;
 		error_if(!c.read(a));
-		prog.fix(a);
+		static_cast<elf::File&>(prog).fix(a);
 		return a;
 	}
 }

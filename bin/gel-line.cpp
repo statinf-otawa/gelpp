@@ -22,7 +22,7 @@
 #include <elm/data/FragTable.h>
 #include <elm/data/HashMap.h>
 
-#include "../include/gel++/elf/DebugLineNumber.h"
+#include "../include/gel++/elf/DebugLine.h"
 
 using namespace elm;
 using namespace elm::option;

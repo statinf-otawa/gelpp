@@ -226,6 +226,16 @@ elf::File64 *File::toELF64() {
 
 
 /**
+ * If available, returns debugging information about the map
+ * between the code and the source lines.
+ * @return	Debug source line information if any, nullptr else.
+ */
+DebugLine *File::debugLines() {
+	return nullptr;
+}
+
+
+/**
  * @fn sys::Path File::path(void) const;
  * Get path of the file.
  * @return	File path.

@@ -7,6 +7,7 @@ add_library(gel++ SHARED
 	elf_File32.cpp
 	elf_File64.cpp
 	elf_UnixBuilder.cpp
+	gel_DebugLine.cpp
 	gel_File.cpp
 	gel_Image.cpp
 	gel_Manager.cpp)
