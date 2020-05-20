@@ -110,7 +110,7 @@ int File64::elfType() {
 
 
 ///
-t::uint16 File64::machine() {
+t::uint16 File64::machineCode() {
 	return h->e_machine;
 }
 

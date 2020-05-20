@@ -62,8 +62,10 @@ public:
 				// common part
 				if(!show_elf || show_all) {
 		 			cout << "file name = " << f->path() << io::endl;
-					cout << "type = " << f->type() << io::endl;
-					cout << "entry = " << f->format(f->entry()) << io::endl;
+					cout << "type      = " << f->type() << io::endl;
+					cout << "entry     = " << f->format(f->entry()) << io::endl;
+					cout << "machine   = " << f->machine() << io::endl;
+					cout << "os        = " << f->os() << io::endl;
 				}
 
 				// ELF specialization

@@ -86,7 +86,7 @@ public:
 
 	// elf::File overload
 	int elfType() override;
-	t::uint16 machine() override;
+	t::uint16 machineCode() override;
 	t::uint16 version() override;
 	const t::uint8 *ident() override;
 	void fillSymbolTable(SymbolTable& symtab, Section *sect) override;

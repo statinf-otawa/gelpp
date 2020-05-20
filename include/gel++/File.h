@@ -112,6 +112,8 @@ public:
 
 	virtual const SymbolTable& symbols() = 0;
 	virtual DebugLine *debugLines();
+	virtual cstring machine();
+	virtual cstring os();
 
 protected:
 	Manager& man;

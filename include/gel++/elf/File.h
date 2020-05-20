@@ -127,7 +127,7 @@ public:
 	virtual ~File(void);
 
 	virtual int elfType() = 0;
-	virtual t::uint16 machine() = 0;
+	virtual t::uint16 machineCode() = 0;
 	virtual t::uint16 version() = 0;
 	virtual const t::uint8 *ident() = 0;
 
@@ -154,6 +154,8 @@ public:
 	Image *make(const Parameter& params) override;
 	int count() override;
 	gel::Segment *segment(int i) override;
+	cstring machine() override;
+	cstring os() override;
 
 	// Decoder override
 	void fix(t::uint16& i) override;

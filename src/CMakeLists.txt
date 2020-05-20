@@ -10,7 +10,8 @@ add_library(gel++ SHARED
 	gel_DebugLine.cpp
 	gel_File.cpp
 	gel_Image.cpp
-	gel_Manager.cpp)
+	gel_Manager.cpp
+	pecoff_File.cpp)
 
 if(INSTALL_BIN)
 	install(TARGETS gel++ DESTINATION "${LIBDIR}")

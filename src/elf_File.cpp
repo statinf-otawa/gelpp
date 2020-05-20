@@ -246,6 +246,82 @@ gel::Segment *File::segment(int i) {
 }
 
 
+///
+cstring File::machine() {
+	switch(machineCode()) {
+	case 0:		return "no machine";		// No machine.
+	case 1:		return "we32100";		// AT&T WE 32100
+	case 2:		return "sparc";			// SPARC
+	case 3:		return "386";			// Intel 80386
+	case 4:		return "m68k";			// Motorola 68000
+	case 5:		return "m88k";			// Motorola 88000
+	case 7:		return "860";			// Intel 80860
+	case 8:		return "mips r3k";		// MIPS RS3000 Big-Endian
+	case 10:	return "mips r4k";		// MIPS RS4000 Big-Endian
+	case 15:	return "pa-risc";		// Hewlett-Packard PA-RISC
+	case 17:	return "vpp500";		// Fujitsu VPP500
+	case 18:	return "sparc32+";		// EM_SPARC32PLUS Enhanced instruction set SPARC
+	case 19:	return "960";			// EM_960 Intel 80960
+	case 20:	return "ppc";			// EM_PPC Power PC
+	case 36:	return "v800";			// EM_V800 NEC V800
+	case 37:	return "fr20";			// EM_FR20 Fujitsu FR20
+	case 38:	return "rh32";			// EM_RH32 TRW RH-32
+	case 39:	return "rce";			// EM_RCE Motorola RCE
+	case 40:	return "arm";			// EM_ARM Advanced RISC Machines ARM
+	case 41:	return "alpha";			// EM_ALPHA	Digital Alpha
+	case 42:	return "sh";			// EM_SH Hitachi SH
+	case 43:	return "sparcv9";		// EM_SPARCV9 SPARC Version 9
+	case 44:	return "tricore";		// EM_TRICORE Siemens Tricore embedded processor
+	case 45:	return "arc";			// EM_ARC Argonaut RISC Core, Argonaut Technologies Inc.
+	case 46:	return "h8/300";		// EM_H8_300 Hitachi H8/300
+	case 47:	return "h8/300h";		// EM_H8_300H Hitachi H8/300H
+	case 48:	return "h8s";			// EM_H8S Hitachi H8S
+	case 49:	return "h8/5003";		// EM_H8_500 Hitachi H8/500
+	case 50:	return "ia-64";			// EM_IA_64 Intel MercedTM Processor
+	case 51:	return "mps-x";			// EM_MIPS_X Stanford MIPS-X
+	case 52:	return "coldfire";		// EM_COLDFIRE Motorola Coldfire
+	case 53:	return "68hc12";		// EM_68HC12 Motorola M68HC12
+	case 54:	return "mma";			// EM_MMA Fujitsu MMA Multimedia Accelerator
+	case 55:	return "pcp";			// EM_PCP Siemens PCP
+	case 56:	return "ncpu";			// EM_NCPU Sony nCPU embedded RISC processor
+	case 57:	return "ndr1";			// EM_NDR1 Denso NDR1 microprocessor
+	case 58:	return "starcore";		// EM_STARCORE Motorola Star*Core processor
+	case 59:	return "me16";			// EM_ME16 Toyota ME16 processor
+	case 60:	return "st100";			// EM_ST100 STMicroelectronics ST100 processor
+	case 61:	return "tinyj";			// EM_TINYJ Advanced Logic Corp. TinyJ embedded processor family
+	case 66:	return "fx663";			// EM_FX66 Siemens FX66 microcontroller
+	case 67:	return "st9+";			// EM_ST9PLUS STMicroelectronics ST9+ 8/16 bit microcontroller
+	case 68:	return "st7";			// EM_ST7 STMicroelectronics ST7 8-bit microcontroller
+	case 69:	return "68hc16";		// EM_68HC16 Motorola MC68HC16 Microcontroller
+	case 70:	return "68hc11";		// EM_68HC11 Motorola MC68HC11 Microcontroller
+	case 71:	return "68hc08";		// EM_68HC08 Motorola MC68HC08 Microcontroller
+	case 72:	return "68hc05";		// EM_68HC05 Motorola MC68HC05 Microcontroller
+	case 73:	return "svx";			// EM_SVX Silicon Graphics SVx
+	case 74:	return "st19";			// EM_ST19 STMicroelectronics ST19 8-bit microcontroller
+	case 75:	return "vax";			// EM_VAX Digital VAX
+	case 76:	return "cris";			// EM_CRIS Axis Communications 32-bit embedded processor
+	case 77:	return "javelin";		// EM_JAVELIN Infineon Technologies 32-bit embedded processor
+	case 78:	return "firepath";		// EM_FIREPATH Element 14 64-bit DSP Processor
+	case 79:	return "zsp";			// EM_ZSP LSI Logic 16-bit DSP Processor
+	case 80:	return "mmix";			// EM_MMIX Donald Knuth's educational 64-bit processor
+	case 81:	return "huany";			// EM_HUANY Harvard University machine-independent object files
+	case 82:	return "prism";			// EM_PRISM SiTera Prism
+	default:	return gel::File::machine();
+	}
+}
+
+
+///
+cstring File::os() {
+	switch(ident()[EI_OSABI]) {
+	case ELFOSABI_SYSV:			return "SysV";
+	case ELFOSABI_HPUX: 		return "HPUX";
+	case ELFOSABI_STANDALONE:	return "standalone";
+	default:					return gel::File::os();
+	}
+}
+
+
 /**
  * Initialize the section part.
  */

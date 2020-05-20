@@ -236,6 +236,24 @@ DebugLine *File::debugLines() {
 
 
 /**
+ * Get the name of the machine this binary is run on.
+ * @return	Host machine name.
+ */
+cstring File::machine() {
+	return "unknown machine";
+}
+
+
+/**
+ * Get the name of the OS this binary is run on.
+ * @return	Host OS name.
+ */
+cstring File::os() {
+	return "unknown OS";
+}
+
+
+/**
  * @fn sys::Path File::path(void) const;
  * Get path of the file.
  * @return	File path.
