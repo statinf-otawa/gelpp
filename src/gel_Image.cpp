@@ -171,6 +171,43 @@ cstring ImageSegment::defaultName(flags_t flags) {
  * @return	Segment buffer.
  */
 
+/**
+ * @fn ImageSegment::flags_t ImageSegment::flags() const;
+ * Get the flags of the segment, a OR'ed combination of WRITABLE, EXECUTABLE,
+ * CONTENT and STACK.
+ * @return		Value of flags.
+ */
+
+/**
+ * @fn bool ImageSegment::isWritable() const;
+ * Test if the segment is writable.
+ * @return	True if it is writable, false else.
+ */
+
+/**
+ * @fn bool ImageSegment::isExecutable() const;
+ * Test if the segment is executable.
+ * @return	True if it is executable, false else.
+ */
+
+/**
+ * @fn bool ImageSegment::isReadable() const;
+ * Test if the segment is readable.
+ * @return	True if it is readable, false else.
+ */
+
+/**
+ * @fn bool ImageSegment::isStack() const;
+ * Test if the segment represents the initial stack.
+ * @return	True if it is the initial stack, false else.
+ */
+
+/**
+ * @fn bool ImageSegment::hasContent() const;
+ * Test if the segment is initialized with content at startup.
+ * @return	True if it has content, false else.
+ */
+
 
 /**
  * @class Parameter
@@ -355,9 +392,9 @@ void Image::add(ImageSegment *segment) {
  * @return			Found segment or null.
  */
 ImageSegment *Image::at(address_t address) {
-	for(SegIter s = segments(); s(); s++)
+	for(auto s: segments())
 		if(s->range().contains(address))
-			return *s;
+			return s;
 	return null<ImageSegment>();
 }
 
@@ -368,13 +405,13 @@ ImageSegment *Image::at(address_t address) {
 void Image::clean(void) {
 
 	// remove files
-	for(LinkIter l = files(); l(); l++)
-		if((*l).file != _prog)
-			delete (*l).file;
+	for(auto l: files())
+		if(l.file != _prog)
+			delete l.file;
 	_links.clear();
 
 	// clean segments
-	for(SegIter s = segments(); s(); s++)
+	for(auto s: segments())
 		if(s->file() != _prog)
 			s->clean();
 }

@@ -112,9 +112,11 @@ public:
 
 	virtual const SymbolTable& symbols() = 0;
 	virtual DebugLine *debugLines();
-	virtual cstring machine();
-	virtual cstring os();
-
+	virtual cstring machine() const;
+	virtual cstring os() const;
+	virtual int elfMachine() const;
+	virtual int elfOS() const;
+	
 protected:
 	Manager& man;
 private:

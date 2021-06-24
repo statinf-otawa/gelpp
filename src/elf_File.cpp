@@ -247,75 +247,103 @@ gel::Segment *File::segment(int i) {
 
 
 ///
-cstring File::machine() {
-	switch(machineCode()) {
-	case 0:		return "no machine";		// No machine.
-	case 1:		return "we32100";		// AT&T WE 32100
-	case 2:		return "sparc";			// SPARC
-	case 3:		return "386";			// Intel 80386
-	case 4:		return "m68k";			// Motorola 68000
-	case 5:		return "m88k";			// Motorola 88000
-	case 7:		return "860";			// Intel 80860
-	case 8:		return "mips r3k";		// MIPS RS3000 Big-Endian
-	case 10:	return "mips r4k";		// MIPS RS4000 Big-Endian
-	case 15:	return "pa-risc";		// Hewlett-Packard PA-RISC
-	case 17:	return "vpp500";		// Fujitsu VPP500
-	case 18:	return "sparc32+";		// EM_SPARC32PLUS Enhanced instruction set SPARC
-	case 19:	return "960";			// EM_960 Intel 80960
-	case 20:	return "ppc";			// EM_PPC Power PC
-	case 36:	return "v800";			// EM_V800 NEC V800
-	case 37:	return "fr20";			// EM_FR20 Fujitsu FR20
-	case 38:	return "rh32";			// EM_RH32 TRW RH-32
-	case 39:	return "rce";			// EM_RCE Motorola RCE
-	case 40:	return "arm";			// EM_ARM Advanced RISC Machines ARM
-	case 41:	return "alpha";			// EM_ALPHA	Digital Alpha
-	case 42:	return "sh";			// EM_SH Hitachi SH
-	case 43:	return "sparcv9";		// EM_SPARCV9 SPARC Version 9
-	case 44:	return "tricore";		// EM_TRICORE Siemens Tricore embedded processor
-	case 45:	return "arc";			// EM_ARC Argonaut RISC Core, Argonaut Technologies Inc.
-	case 46:	return "h8/300";		// EM_H8_300 Hitachi H8/300
-	case 47:	return "h8/300h";		// EM_H8_300H Hitachi H8/300H
-	case 48:	return "h8s";			// EM_H8S Hitachi H8S
-	case 49:	return "h8/5003";		// EM_H8_500 Hitachi H8/500
-	case 50:	return "ia-64";			// EM_IA_64 Intel MercedTM Processor
-	case 51:	return "mps-x";			// EM_MIPS_X Stanford MIPS-X
-	case 52:	return "coldfire";		// EM_COLDFIRE Motorola Coldfire
-	case 53:	return "68hc12";		// EM_68HC12 Motorola M68HC12
-	case 54:	return "mma";			// EM_MMA Fujitsu MMA Multimedia Accelerator
-	case 55:	return "pcp";			// EM_PCP Siemens PCP
-	case 56:	return "ncpu";			// EM_NCPU Sony nCPU embedded RISC processor
-	case 57:	return "ndr1";			// EM_NDR1 Denso NDR1 microprocessor
-	case 58:	return "starcore";		// EM_STARCORE Motorola Star*Core processor
-	case 59:	return "me16";			// EM_ME16 Toyota ME16 processor
-	case 60:	return "st100";			// EM_ST100 STMicroelectronics ST100 processor
-	case 61:	return "tinyj";			// EM_TINYJ Advanced Logic Corp. TinyJ embedded processor family
-	case 66:	return "fx663";			// EM_FX66 Siemens FX66 microcontroller
-	case 67:	return "st9+";			// EM_ST9PLUS STMicroelectronics ST9+ 8/16 bit microcontroller
-	case 68:	return "st7";			// EM_ST7 STMicroelectronics ST7 8-bit microcontroller
-	case 69:	return "68hc16";		// EM_68HC16 Motorola MC68HC16 Microcontroller
-	case 70:	return "68hc11";		// EM_68HC11 Motorola MC68HC11 Microcontroller
-	case 71:	return "68hc08";		// EM_68HC08 Motorola MC68HC08 Microcontroller
-	case 72:	return "68hc05";		// EM_68HC05 Motorola MC68HC05 Microcontroller
-	case 73:	return "svx";			// EM_SVX Silicon Graphics SVx
-	case 74:	return "st19";			// EM_ST19 STMicroelectronics ST19 8-bit microcontroller
-	case 75:	return "vax";			// EM_VAX Digital VAX
-	case 76:	return "cris";			// EM_CRIS Axis Communications 32-bit embedded processor
-	case 77:	return "javelin";		// EM_JAVELIN Infineon Technologies 32-bit embedded processor
-	case 78:	return "firepath";		// EM_FIREPATH Element 14 64-bit DSP Processor
-	case 79:	return "zsp";			// EM_ZSP LSI Logic 16-bit DSP Processor
-	case 80:	return "mmix";			// EM_MMIX Donald Knuth's educational 64-bit processor
-	case 81:	return "huany";			// EM_HUANY Harvard University machine-independent object files
-	case 82:	return "prism";			// EM_PRISM SiTera Prism
+cstring File::machine() const {
+	// Look here https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
+	switch(elfMachine()) {
+	case 0x00:	return "no machine";
+	case 0x01:	return "we32100";
+	case 0x02:	return "sparc";
+	case 0x03:	return "i386";
+	case 0x04:	return "m68k";
+	case 0x05:	return "m88k";
+	case 0x06:	return "iMCU";
+	case 0x07:	return "i860";
+	case 0x08:	return "r3000";
+	case 0x09:	return "S370";
+	case 0x0A:	return "r4000";
+	case 0x0E:	return "pa-risc";
+	case 0x11:	return "vpp500";
+	case 0x12:	return "sparc32+";
+	case 0x13:	return "i960";
+	case 0x14:	return "ppc";
+	case 0x15:	return "ppc64";
+	case 0x16:	return "S390";
+	case 0x17:	return "SPUC/SPC";
+	case 0x24:	return "v800";
+	case 0x25:	return "fr20";
+	case 0x26:	return "rh32";
+	case 0x27:	return "rce";
+	case 0x28:	return "arm";
+	case 0x29:	return "alpha";
+	case 0x2A:	return "superh";
+	case 0x2B:	return "sparcv9";
+	case 0x2C:	return "tricore";
+	case 0x2D:	return "arc";
+	case 0x2E:	return "h8/300";
+	case 0x2F:	return "h8/300h";
+	case 0x30:	return "h8s";
+	case 0x31:	return "h8/500";
+	case 0x32:	return "ia-64";
+	case 0x33:	return "mips-x";
+	case 0x34:	return "coldfire";
+	case 0x35:	return "m68hc12";
+	case 0x36:	return "mma";
+	case 0x37:	return "pcp";
+	case 0x38:	return "ncpu";
+	case 0x39:	return "ndr1";
+	case 0x3A:	return "star*core";
+	case 0x3B:	return "me16";
+	case 0x3C:	return "st100";
+	case 0x3D:	return "tinyj";
+	case 0x3E:	return "x86-64";
+	case 66:	return "fx663";
+	case 67:	return "st9+";
+	case 68:	return "st7";
+	case 69:	return "68hc16";
+	case 70:	return "68hc11";
+	case 71:	return "68hc08";
+	case 72:	return "68hc05";
+	case 73:	return "svx";
+	case 74:	return "st19";
+	case 75:	return "vax";
+	case 76:	return "cris";
+	case 77:	return "javelin";
+	case 78:	return "firepath";
+	case 79:	return "zsp";
+	case 80:	return "mmix";
+	case 81:	return "huany";
+	case 82:	return "prism";
+	case 0x8C:	return "tms320c6000";
+	case 0xB7:	return "arm64";
+	case 0xF3:	return "riscv";
+	case 0xF7:	return "bpf";
+	case 0X101: return "wdc65c816";
 	default:	return gel::File::machine();
 	}
 }
 
 
 ///
-cstring File::os() {
-	switch(ident()[EI_OSABI]) {
+cstring File::os() const {
+	switch(elfOS()) {
 	case ELFOSABI_SYSV:			return "SysV";
 	case ELFOSABI_HPUX: 		return "HPUX";
+	case 0x02:					return "NetBSD";
+	case 0x03:					return "Linux";
+	case 0x04:					return "GNU-Hurd";
+	case 0x06:					return "Solaris";
+	case 0x07:					return "AIX";
+	case 0x08:					return "IRIX";
+	case 0x09:					return "FreeBSD";
+	case 0x0A:					return "Tru64";
+	case 0x0B:					return "Novel-Modesto";
+	case 0x0C:					return "OpenBSD";
+	case 0x0D:					return "OpenVMS";
+	case 0x0E:					return "NonStop-Kernel";
+	case 0x0F:					return "AROS";
+	case 0x10:					return "Fenix-OS";
+	case 0x11:					return "CloudABI";
+	case 0X12:					return "OpenVOS";
 	case ELFOSABI_STANDALONE:	return "standalone";
 	default:					return gel::File::os();
 	}

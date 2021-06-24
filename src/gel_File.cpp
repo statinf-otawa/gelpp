@@ -239,7 +239,7 @@ DebugLine *File::debugLines() {
  * Get the name of the machine this binary is run on.
  * @return	Host machine name.
  */
-cstring File::machine() {
+cstring File::machine() const {
 	return "unknown machine";
 }
 
@@ -248,8 +248,25 @@ cstring File::machine() {
  * Get the name of the OS this binary is run on.
  * @return	Host OS name.
  */
-cstring File::os() {
+cstring File::os() const {
 	return "unknown OS";
+}
+
+
+/**
+ * Get the machine using ELF code.
+ * @return	ELF machine code or -1 if it can be determined.
+ */
+int File::elfMachine() const {
+	return -1;
+}
+
+/**
+ * Get the OS using ELF code.
+ * @return	ELF OS code or -1 if it can be determined.
+ */
+int File::elfOS() const {
+	return -1;
 }
 
 

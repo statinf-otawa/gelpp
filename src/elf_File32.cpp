@@ -110,8 +110,14 @@ int File32::elfType() {
 
 
 ///
-t::uint16 File32::machineCode() {
+int File32::elfMachine() const {
 	return h->e_machine;
+}
+
+
+///
+int File32::elfOS() const {
+	return h->e_ident[EI_OSABI];
 }
 
 

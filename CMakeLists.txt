@@ -19,6 +19,9 @@ set(BINDIR "bin")
 # check endianness
 include(TestBigEndian)
 TEST_BIG_ENDIAN(BIG_ENDIAN)
+if(BIG_ENDIAN)
+	add_compile_definitions(ENDIANNESS_BIG=1)
+endif(BIG_ENDIAN)
 
 # build configuration file
 configure_file (
@@ -87,3 +90,5 @@ add_subdirectory(bin)
 
 # installation
 install(FILES "README" "COPYING" "AUTHORS" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/GEL++/")
+install(FILES "include/gel++.h" DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
+install(DIRECTORY "include/gel++" DESTINATION "${CMAKE_INSTALL_PREFIX}/include")

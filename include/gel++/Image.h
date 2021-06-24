@@ -36,26 +36,30 @@ public:
 		WRITABLE	= 0x01,
 		EXECUTABLE	= 0x02,
 		READABLE	= 0x04,
-		TO_FREE		= 0x08;
+		CONTENT		= 0x08,
+		STACK		= 0x10,
+		TO_FREE		= 0x20;
 
 	ImageSegment(Buffer buf, address_t addr, flags_t flags, cstring name = "");
 	ImageSegment(File *file, Buffer buf, address_t addr, flags_t flags, cstring name = "");
 	ImageSegment(File *file, Segment *segment, address_t addr, cstring name = "");
 	~ImageSegment(void);
 	void clean(void);
-	inline cstring name(void) const { return _name; }
-	inline File *file(void) const { return _file; }
-	inline Segment *segment(void) const { return _seg; }
-	inline address_t base(void) const { return _base; }
-	inline size_t size(void) const { return _buf.size(); }
-	inline const Buffer& buffer(void) const { return _buf; }
-	inline Buffer& buffer(void) { return _buf; }
-	inline range_t range(void) const { return range_t(_base, _buf.size()); }
-	inline flags_t flags(void) const { return _flags; }
-	inline bool isWritable(void) const { return _flags & WRITABLE; }
-	inline bool isExecutable(void) const { return _flags & EXECUTABLE; }
-	inline bool isReadable(void) const { return _flags & READABLE; }
-
+	inline cstring name() const { return _name; }
+	inline File *file() const { return _file; }
+	inline Segment *segment() const { return _seg; }
+	inline address_t base() const { return _base; }
+	inline size_t size() const { return _buf.size(); }
+	inline const Buffer& buffer() const { return _buf; }
+	inline Buffer& buffer() { return _buf; }
+	inline range_t range() const { return range_t(_base, _buf.size()); }
+	inline flags_t flags() const { return _flags; }
+	inline bool isWritable() const { return _flags & WRITABLE; }
+	inline bool isExecutable() const { return _flags & EXECUTABLE; }
+	inline bool isReadable() const { return _flags & READABLE; }
+	inline bool hasContent() const { return _flags & CONTENT; }
+	inline bool isStack() const { return _flags & STACK; }
+	
 private:
 	static cstring defaultName(flags_t flags);
 
@@ -81,10 +85,10 @@ public:
 	void clean(void);
 
 	typedef BiDiList<link_t>::Iter LinkIter;
-	inline LinkIter files(void) const { return LinkIter(_links); }
+	inline Iterable<LinkIter> files(void) const { return subiter(_links.begin(), _links.end()); }
 
 	typedef BiDiList<ImageSegment *>::Iter SegIter;
-	inline SegIter segments(void) const { return SegIter(segs); }
+	inline Iterable<SegIter> segments(void) const { return subiter(segs.begin(), segs.end()); }
 
 	void add(File *file, address_t base = 0);
 	void add(ImageSegment *segment);

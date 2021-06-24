@@ -124,6 +124,8 @@ t::uint32 Unit::load(UnixBuilder& builder, t::uint32 base) {
 					f |= ImageSegment::WRITABLE;
 				if((h->flags() & PF_R) != 0)
 					f |= ImageSegment::READABLE;
+				if(h->filesz() != 0)
+					f |= ImageSegment::CONTENT;
 				ImageSegment *is = new ImageSegment(_file, h->content(), base + h->vaddr(), f);
 				builder._im->add(is);
 				top = max(top, _base + h->vaddr() + h->memsz());
