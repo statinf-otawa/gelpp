@@ -37,14 +37,7 @@ namespace gel { namespace elf {
 class Segment: public gel::Segment {
 public:
 	Segment(ProgramHeader *h): _head(h) {
-		if(h->flags() & PF_X)
-			_name = "code";
-		else if(h->flags() & PF_W)
-			_name = "data";
-		else if(h->flags() & PF_R)
-			_name = "rodata";
-		else
-			_name = "unknown";
+		_name = defaultName(this);
 	}
 
 	cstring name() 			override { return _name; }

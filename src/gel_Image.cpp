@@ -49,7 +49,7 @@ ImageSegment::ImageSegment(Buffer buf, address_t addr, flags_t flags, cstring na
 	_flags(flags)
 {
 	if(!_name)
-		_name = defaultName(flags);
+		_name = defaultName(this);
 }
 
 /**
@@ -69,7 +69,7 @@ ImageSegment::ImageSegment(File *file, Buffer buf, address_t addr, flags_t flags
 		_flags(flags)
 {
 	if(!_name)
-		_name = defaultName(flags);
+		_name = defaultName(this);
 }
 
 
@@ -101,7 +101,7 @@ ImageSegment::ImageSegment(File *file, Segment *segment, address_t addr, cstring
 	if(size < segment->size())
 		array::clear(_buf.bytes() + size, segment->size() - size);
 	if(!_name)
-		name = defaultName(_flags);
+		name = defaultName(this);
 }
 
 /**
@@ -120,20 +120,32 @@ void ImageSegment::clean(void) {
 	_seg = 0;
 }
 
-/**
- * Compute default segment name from its flags.
- * @param flags	Segment flags.
- * @return		Corresponding name.
- */
-cstring ImageSegment::defaultName(flags_t flags) {
-	if(flags & EXECUTABLE)
-		return "code";
-	else if(flags & WRITABLE)
-		return "data";
-	else
-		return "rodata";
-}
+///
+cstring ImageSegment::name() { return _name; }
 
+///
+address_t ImageSegment::baseAddress() { return base(); }
+
+///
+address_t ImageSegment::loadAddress() { return base(); }
+
+///
+size_t ImageSegment::size() { return _buf.size(); }
+
+///
+size_t ImageSegment::alignment() { return 0; }
+
+///
+bool ImageSegment::isExecutable() { return _flags & EXECUTABLE; }
+
+///
+bool ImageSegment::isWritable() { return _flags & WRITABLE; }
+
+///
+bool ImageSegment::hasContent() { return _flags & CONTENT; }
+
+///
+Buffer ImageSegment::buffer() { return _buf; }
 
 /**
  * @fn File *ImageSegment::file(void) const;
@@ -154,19 +166,7 @@ cstring ImageSegment::defaultName(flags_t flags) {
  */
 
 /**
- * @fn size_t ImageSegment::size(void) const;
- * Get the size of the segment.
- * @return	Segment size.
- */
-
-/**
  * @fn const Buffer& ImageSegment::buffer(void) const;
- * Get the buffer to access segment data.
- * @return	Segment buffer.
- */
-
-/**
- * @fn Buffer& ImageSegment::buffer(void);
  * Get the buffer to access segment data.
  * @return	Segment buffer.
  */
@@ -179,18 +179,6 @@ cstring ImageSegment::defaultName(flags_t flags) {
  */
 
 /**
- * @fn bool ImageSegment::isWritable() const;
- * Test if the segment is writable.
- * @return	True if it is writable, false else.
- */
-
-/**
- * @fn bool ImageSegment::isExecutable() const;
- * Test if the segment is executable.
- * @return	True if it is executable, false else.
- */
-
-/**
  * @fn bool ImageSegment::isReadable() const;
  * Test if the segment is readable.
  * @return	True if it is readable, false else.
@@ -200,12 +188,6 @@ cstring ImageSegment::defaultName(flags_t flags) {
  * @fn bool ImageSegment::isStack() const;
  * Test if the segment represents the initial stack.
  * @return	True if it is the initial stack, false else.
- */
-
-/**
- * @fn bool ImageSegment::hasContent() const;
- * Test if the segment is initialized with content at startup.
- * @return	True if it has content, false else.
  */
 
 
@@ -483,7 +465,7 @@ Image *SimpleBuilder::build(void) {
 	Image *im = new Image(_prog);
 	for(int i = 0; i < _prog->count(); i++) {
 		Segment *seg = _prog->segment(i);
-		im->add(new ImageSegment(_prog, seg, seg->loadAddress()));
+		im->add(new ImageSegment(_prog, seg, seg->loadAddress(), seg->name()));
 	}
 	return im;
 }

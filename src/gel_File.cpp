@@ -122,6 +122,23 @@ Segment::~Segment(void) {
 }
 
 /**
+ * Compute a name for the given segment according to its properties.
+ * @param seg	Segment to compute name for.
+ * @return		Name fot the segment.
+ */
+cstring Segment::defaultName(Segment *seg) {
+	if(seg->isExecutable())
+		return "code";
+	else if(seg->isWritable())
+		return "data";
+	else if(seg->hasContent())
+		return "rodata";
+	else
+		return "unknown";
+}
+
+
+/**
  * @fn cstring Segment::name(void);
  * Get the name of the segment.
  * @return	Segment name.

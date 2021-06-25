@@ -29,7 +29,7 @@ namespace gel {
 using namespace elm;
 class Image;
 
-class ImageSegment {
+class ImageSegment: public Segment {
 public:
 	typedef t::uint32 flags_t;
 	static const flags_t
@@ -45,24 +45,27 @@ public:
 	ImageSegment(File *file, Segment *segment, address_t addr, cstring name = "");
 	~ImageSegment(void);
 	void clean(void);
-	inline cstring name() const { return _name; }
 	inline File *file() const { return _file; }
 	inline Segment *segment() const { return _seg; }
 	inline address_t base() const { return _base; }
-	inline size_t size() const { return _buf.size(); }
 	inline const Buffer& buffer() const { return _buf; }
-	inline Buffer& buffer() { return _buf; }
 	inline range_t range() const { return range_t(_base, _buf.size()); }
 	inline flags_t flags() const { return _flags; }
-	inline bool isWritable() const { return _flags & WRITABLE; }
-	inline bool isExecutable() const { return _flags & EXECUTABLE; }
 	inline bool isReadable() const { return _flags & READABLE; }
-	inline bool hasContent() const { return _flags & CONTENT; }
 	inline bool isStack() const { return _flags & STACK; }
-	
-private:
-	static cstring defaultName(flags_t flags);
 
+	// Segment implementation
+	cstring name() override;
+	address_t baseAddress() override;
+	address_t loadAddress() override;
+	size_t size() override;
+	size_t alignment() override;
+	bool isExecutable() override;
+	bool isWritable() override;
+	bool hasContent() override;
+	Buffer buffer() override;
+
+private:
 	cstring _name;
 	File *_file;
 	Segment *_seg;

@@ -38,16 +38,17 @@ namespace elf {
 
 class Segment {
 public:
-	virtual ~Segment(void);
-	virtual cstring name(void) = 0;
-	virtual address_t baseAddress(void) = 0;
-	virtual address_t loadAddress(void) = 0;
-	virtual size_t size(void) = 0;
-	virtual size_t alignment(void) = 0;
-	virtual bool isExecutable(void) = 0;
-	virtual bool isWritable(void) = 0;
-	virtual bool hasContent(void) = 0;
-	virtual Buffer buffer(void) = 0;
+	static cstring defaultName(Segment *seg);	
+	virtual ~Segment();
+	virtual cstring name() = 0;
+	virtual address_t baseAddress() = 0;
+	virtual address_t loadAddress() = 0;
+	virtual size_t size() = 0;
+	virtual size_t alignment() = 0;
+	virtual bool isExecutable() = 0;
+	virtual bool isWritable() = 0;
+	virtual bool hasContent() = 0;
+	virtual Buffer buffer() = 0;
 };
 
 class Symbol {
