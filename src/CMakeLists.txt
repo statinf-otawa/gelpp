@@ -12,7 +12,9 @@ add_library(gel++ SHARED
 	gel_Image.cpp
 	gel_Manager.cpp
 	pecoff_File.cpp)
-
+target_link_libraries("gel++" "${ELM_LIB}")
+set_target_properties(gel++ PROPERTIES
+	INSTALL_RPATH "\$ORIGIN")
 if(INSTALL_BIN)
 	install(TARGETS gel++ DESTINATION "${LIBDIR}")
 endif()

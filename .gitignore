@@ -8,3 +8,9 @@ CTestTestfile.cmake
 Makefile
 /.settings
 /.project
+/.kdev4/
+/Doxygen.log
+/autodoc/
+/bin/gel-line
+/gel++.kdev4
+/install_manifest.txt
