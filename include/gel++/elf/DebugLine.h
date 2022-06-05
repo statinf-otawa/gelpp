@@ -59,6 +59,10 @@ public:
 			minimum_instruction_length = 0,
 			maximum_operations_per_instruction = 0;
 		Vector<cstring> include_directories;
+		// initialize from program header 
+		bool basic_block = false;		// DWARF-5? (TODO)
+		bool prologue_end = false;		// DWARF-5 (TODO)
+		bool epilogue_begin = false;	// DWARF-5 (TODO)
 	};
 
 	DebugLine(elf::File *efile);

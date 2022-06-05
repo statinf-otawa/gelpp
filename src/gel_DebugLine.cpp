@@ -180,7 +180,6 @@ void DebugLine::CompilationUnit::add(File *file) {
  * @param efile
  */
 DebugLine::DebugLine(gel::File *efile): prog(*efile) {
-	cerr << "DEBUG hasht = " << &_files << io::endl;
 }
 
 ///

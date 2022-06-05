@@ -51,6 +51,37 @@ namespace gel { namespace elf {
 #define DW_LNE_define_file			3
 #define DW_LNE_set_discriminator	4		/* DWARF-4 */
 
+// Standard Content Description (DWARF-5, TODO)
+#define DW_LNCT_path				0x1
+#define DW_LNCT_directory_index		0x2
+#define DW_LNCT_timestamp			0x3
+#define DW_LNCT_size				0x4
+#define DW_LNCT_MD5					0x5
+
+// Attribute form
+#define DW_FORM_addr			0x01
+#define DW_FORM_block2			0x03
+#define DW_FORM_block4			0x04
+#define DW_FORM_data2			0x05
+#define DW_FORM_data4			0x06
+#define DW_FORM_data8			0x07			
+#define DW_FORM_string			0x08
+#define DW_FORM_block			0x09
+#define DW_FORM_block1			0x0a
+#define DW_FORM_data1			0x0b
+#define DW_FORM_flag			0x0c
+#define DW_FORM_sdata			0x0d
+#define DW_FORM_strp			0x0e
+	
+#define DW_FORM_line_strp
+#define DW_FORM_strp_sup
+#define DW_FORM_strx
+#define DW_FORM_strx1
+#define DW_FORM_strx2
+#define DW_FORM_strx3
+#define DW_FORM_strx4
+	
+	
 /**
  * @class DebugLine::StateMachine
  * Only for internal use.
@@ -137,22 +168,22 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	t::uint16 version;
 	c.read(version);
 	static_cast<elf::File&>(prog).fix(version);
-	DEBUG("version = " << version);
 	if(version > 4)
-		throw gel::Exception("DWARF version > 4");
+		throw gel::Exception(_ << "DWARF version > 4 (" << version << ")");
 
+	// DWARF-5 (TODO)
+	// address_size (ubyte)
+	// segment_selector_size (ubyte)
+	
 	// read header length
 	size_t header_length = readHeaderLength(c);
 	size_t lines = c.offset() + header_length;
-	DEBUG("lines = " << lines);
+	//DEBUG("lines = " << lines);
 
 	// base information
 	c.read(sm.minimum_instruction_length);
-	//DEBUG("min inst length = " << cu->minimum_instruction_length);
-	if(version >= 4) {
+	if(version >= 4)
 		c.read(sm.maximum_operations_per_instruction);
-		//DEBUG("max op per inst = " << cu->maximum_operations_per_instruction);
-	}
 	else
 		sm.maximum_operations_per_instruction = 1;
 
@@ -171,13 +202,23 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	error_if(!c.avail(sm.opcode_base - 1));
 	sm.standard_opcode_lengths = c.here();
 #		ifdef DO_DEBUG
-		cerr << "standard opcode lengths =";
-		for(int i = 0; i < sm.opcode_base - 1; i++)
-			cerr << " " << sm.standard_opcode_lengths[i];
-		cerr << io::endl;
+			cerr << "standard opcode lengths =";
+			for(int i = 0; i < sm.opcode_base - 1; i++)
+				cerr << " " << sm.standard_opcode_lengths[i];
+			cerr << io::endl;
 #		endif
 	c.skip(sm.opcode_base - 1);
 
+	// DWARF-5 new organisation (TODO)
+	// directory_entry_format_count (ubyte)
+	// directory_entry_format (ULEB128 pair list)
+	// directories_count (ULEB128)
+	// directories (string list)
+	// filename_entry_format_count (ubyte)
+	// file_name_entry_format (ULEB128 pair list)
+	// file_names_count(ULEB128)
+	// file_name(string list)
+	
 	// include directories
 	cstring s;
 	do {
