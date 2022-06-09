@@ -36,6 +36,19 @@ namespace elf {
 	class File64;
 }
 
+typedef t::uint32 flags_t;
+typedef enum {
+	IS_EXECUTABLE	= 0x0001,
+	IS_WRITABLE		= 0x0002,
+	IS_READABLE		= 0x0004,
+	HAS_CONTENT		= 0x0008,
+	IS_LOADABLE		= 0x0010,
+	IS_DEBUG		= 0x0020,
+	IS_STRING_TABLE	= 0x0040,
+	IS_SYMBOL_TABLE	= 0x0080,
+	IS_RELOC		= 0x0100
+} flag_values_t;
+
 class Segment {
 public:
 	static cstring defaultName(Segment *seg);	
@@ -49,6 +62,14 @@ public:
 	virtual bool isWritable() = 0;
 	virtual bool hasContent() = 0;
 	virtual Buffer buffer() = 0;
+};
+
+class Section: public Segment {
+public:
+	virtual ~Section();
+	virtual size_t offset() = 0;
+	virtual size_t fileSize() = 0;
+	virtual flags_t flags() = 0;
 };
 
 class Symbol {
@@ -111,6 +132,9 @@ public:
 	virtual Image *make();
 	virtual Image *make(const Parameter& params) = 0;
 
+	virtual int countSections();
+	virtual Section *section(int i);
+	
 	virtual const SymbolTable& symbols() = 0;
 	virtual DebugLine *debugLines();
 	virtual cstring machine() const;

@@ -22,7 +22,7 @@
 
 #include <gel++/pecoff/File.h>
 
-#define IMARK	//cerr << __FILE__ << ":" << __LINE__ << io::endl
+#define IMARK	cerr << __FILE__ << ":" << __LINE__ << io::endl
 
 namespace gel { namespace pecoff {
 
@@ -31,11 +31,22 @@ namespace gel { namespace pecoff {
  * The PE-COFF module is used to load executable and shared libraries from
  * the Windows OS.
  *
- * All details about this format can be found here: https://docs.microsoft.com/en-us/windows/win32/debug/pe-format .
+ * All details about this format can be found here:
+ * * https://docs.microsoft.com/en-us/windows/win32/debug/pe-format
+ * * https://en.wikipedia.org/wiki/Portable_Executable
  */
 
 static const t::uint32 msdos_offset = 0x3C;
 static char magic[4] = { 'P', 'E', '\0', '\0' };
+
+/* something uglier than that?
+ * 	offset			size			
+ *	PE32	PE32+	PE32	PE32+	part
+ * 	0		0		28		24		standard coff fields
+ * 	28		24		68		88		windows specific fields
+ *	96		112		variable		data directories
+ */
+
 
 typedef enum {
 	IMAGE_FILE_MACHINE_UNKNOWN = 0x0,
@@ -47,6 +58,7 @@ typedef enum {
 	IMAGE_FILE_MACHINE_EBC = 0xebc,
 	IMAGE_FILE_MACHINE_I386 = 0x14c,
 	IMAGE_FILE_MACHINE_IA64 = 0x200,
+	IMAGE_FILE_MACHINE_LOONGARCH32 = 0x6232,
 	IMAGE_FILE_MACHINE_M32R = 0x9041,
 	IMAGE_FILE_MACHINE_MIPS16 = 0x266,
 	IMAGE_FILE_MACHINE_MIPSFPU = 0x366,
@@ -54,6 +66,9 @@ typedef enum {
 	IMAGE_FILE_MACHINE_POWERPC = 0x1f0,
 	IMAGE_FILE_MACHINE_POWERPCFP = 0x1f1,
 	IMAGE_FILE_MACHINE_R4000 = 0x166,
+	IMAGE_FILE_MACHINE_RISCV32 = 0x5032,
+	IMAGE_FILE_MACHINE_RISCV64 = 0x5064,
+	IMAGE_FILE_MACHINE_RISCV128 = 0x5128,
 	IMAGE_FILE_MACHINE_SH3 = 0x1a2,
 	IMAGE_FILE_MACHINE_SH3DSP = 0x1a3,
 	IMAGE_FILE_MACHINE_SH4 = 0x1a6,
@@ -267,172 +282,222 @@ static string escape(const char *buf, int size) {
  * @ingroup pecoff
  */
 
+
+/**
+ * Test if the given magic number matches PE-COFF.
+ * param magic	Magic number to be tested.
+ * @return		True if magic number is PE-COFF, false else.
+ */
+bool File::matches(t::uint8 magic[4]) {
+	return magic[0] == 0x4D && magic[1] == 0x5A;
+}
+
+
 /**
  * Open the given PE-COFF file.
  * @param manager	Current GEL manager.
  * @param path		Path of the file to open.
  * @throw Exception	If there is a format error.
  */
-File::File(Manager& manager, sys::Path path):
+File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream_):
 	gel::File(manager, path),
-	stream(nullptr),
-	rvas(nullptr),
-	hds(nullptr),
-	str_tab(nullptr),
-	str_size(0)
+	stream(stream_),
+	_data_directories(nullptr),
+	_section_table(nullptr),
+	_symbol_table(nullptr),
+	_string_table(nullptr),
+	_string_table_size(0)
 {
 	try {
-		stream = sys::System::openRandomFile(path);
 
 		// read the offset
 		t::uint32 offset;
 		move(msdos_offset);
 		read(&offset, sizeof(offset));
 		swap(offset);
-		IMARK;
 
-		// read the magic
-		char m[4];
+		// get the header
 		move(offset);
-		read(m, sizeof(m));
-		if(m[0] != magic[0] || m[1] != magic[1] || m[2] != magic[2] || m[3] != magic[3])
-			raise(_ << "not a PECOFF file: magic=" << escape(m, sizeof(m)));
-		IMARK;
+		read(&_coff_header, sizeof(_coff_header));
+		if(_coff_header.signature[0] != magic[0]
+		|| _coff_header.signature[1] != magic[1]
+		|| _coff_header.signature[2] != magic[2]
+		|| _coff_header.signature[3] != magic[3])
+			raise(_ << "not a PECOFF file: magic="
+				<< escape(
+					_coff_header.signature,
+					sizeof(_coff_header.signature)));
+		swap(_coff_header.machine);
+		swap(_coff_header.number_of_sections);
+		swap(_coff_header.time_date_stamp);
+		swap(_coff_header.number_of_symbols);
+		swap(_coff_header.size_of_optional_header);
+		swap(_coff_header.characteristics);
+		/*cerr << "DEBUG: _coff_header\n"
+			 << io::hex(_coff_header.machine) << io::endl
+			 << io::hex(_coff_header.number_of_sections) << io::endl
+			 << io::hex(_coff_header.time_date_stamp) << io::endl
+			 << io::hex(_coff_header.pointer_to_symbol_table) << io::endl
+			 << io::hex(_coff_header.number_of_symbols) << io::endl
+			 << io::hex(_coff_header.size_of_optional_header) << io::endl
+			 << io::hex(_coff_header.characteristics) << io::endl;*/
 
-		// read the PE header
-		read(&_header, sizeof(_header));
-		swap(_header.machine);
-		swap(_header.number_of_sections);
-		swap(_header.time_date_stamp);
-		swap(_header.pointer_to_symbol_table);
-		swap(_header.number_of_symbols);
-		swap(_header.size_of_optional_header);
-		swap(_header.characteristics);
-		IMARK;
-
-		// read the type
-		t::uint16 t;
-		read(&t, sizeof(t));
-		swap(t);
-		if(t != PE32 && t != PE32P)
-			raise(_ << "unknown PE type " << io::hex(t));
-		IMARK;
-
-		// compute size of standard and windows-specific files
-		int standard_fields_size;
-		int windows_specific_fields_size;
-		switch(t) {
+		// read standard COFF fields
+		read(
+			&_standard_coff_fields,
+			sizeof(_standard_coff_fields));
+		swap(_standard_coff_fields.magic);
+		switch(_standard_coff_fields.magic) {
 		case PE32:
-			standard_fields_size = sizeof(standard_fields_t);
-			windows_specific_fields_size = sizeof(pe32_windows_specific_fields_t);
 			break;
 		case PE32P:
-			standard_fields_size = sizeof(standard_fields_t) - sizeof(t::uint32);
-			windows_specific_fields_size = sizeof(windows_specific_fields_t);
+			break;
+		default:
+			raise(_
+				<< "unknown PE type "
+				<< io::hex(_standard_coff_fields.magic));
 			break;
 		}
-		array::clear(&standard_fields, 1);
-		if(_header.size_of_optional_header < standard_fields_size + windows_specific_fields_size + sizeof(t::uint16))
-			raise("format error (3)");
-		IMARK;
+		swap(_standard_coff_fields.size_of_code);
+		swap(_standard_coff_fields.size_of_initialized_data);
+		swap(_standard_coff_fields.size_of_unitialized_data);
+		swap(_standard_coff_fields.address_of_entry_point);
+		swap(_standard_coff_fields.base_of_code);
+		swap(_standard_coff_fields.base_of_data);
+		/*cerr << "DEBUG: _standard_coff_fields"
+				<< io::hex(_standard_coff_fields.magic) << io::endl
+				<< io::hex(_standard_coff_fields.major_linker_version) << io::endl
+				<< io::hex(_standard_coff_fields.minor_linker_version) << io::endl
+				<< io::hex(_standard_coff_fields.size_of_code) << io::endl
+				<< io::hex(_standard_coff_fields.size_of_initialized_data) << io::endl
+				<< io::hex(_standard_coff_fields.size_of_unitialized_data)  << io::endl
+				<< io::hex(_standard_coff_fields.address_of_entry_point) << io::endl
+				<< io::hex(_standard_coff_fields.base_of_code) << io::endl
+				<< io::hex(_standard_coff_fields.base_of_data) << io::endl;
+		*/
 
-		// read standard field
-		read(&standard_fields.major_linker_version, standard_fields_size - sizeof(standard_fields.magic));
-		standard_fields.magic = t;
-		swap(standard_fields.size_of_code);
-		swap(standard_fields.size_of_initialized_data);
-		swap(standard_fields.address_of_entry_point);
-		swap(standard_fields.base_of_code);
-		swap(standard_fields.base_of_data);
-		IMARK;
-
-		// read the windows specific field
-		if(t == PE32) {
-			static pe32_windows_specific_fields_t f;
-			read(&f, sizeof(f));
-			swap(f.image_base);
-			swap(f.section_alignment);
-			swap(f.file_alignment);
-			swap(f.major_operating_system_version);
-			swap(f.minor_operating_system_version);
-			swap(f.major_image_version);
-			swap(f.minor_image_version);
-			swap(f.major_subsystem_version);
-			swap(f.minor_subsystem_version);
-			swap(f.win32_version_value);
-			swap(f.size_of_image);
-			swap(f.size_of_headers);
-			swap(f.checksum);
-			swap(f.subsystem);
-			swap(f.dll_characteristics);
-			swap(f.size_of_stack_reserve);
-			swap(f.size_of_stack_commit);
-			swap(f.size_of_heap_reserve);
-			swap(f.size_of_heap_commit);
-			swap(f.loader_flags);
-			swap(f.number_of_rva_and_sizes);
-			windows_specific_fields.image_base = f.image_base;
-			windows_specific_fields.section_alignment = f.section_alignment;
-			windows_specific_fields.file_alignment = f.file_alignment;
-			windows_specific_fields.major_operating_system_version = f.major_operating_system_version;
-			windows_specific_fields.minor_operating_system_version = f.minor_operating_system_version;
-			windows_specific_fields.major_image_version = f.major_image_version;
-			windows_specific_fields.minor_image_version = f.minor_image_version;
-			windows_specific_fields.major_subsystem_version = f.major_subsystem_version;
-			windows_specific_fields.minor_subsystem_version = f.minor_subsystem_version;
-			windows_specific_fields.win32_version_value = f.win32_version_value;
-			windows_specific_fields.size_of_image = f.size_of_image;
-			windows_specific_fields.size_of_headers = f.size_of_headers;
-			windows_specific_fields.checksum = f.checksum;
-			windows_specific_fields.subsystem = f.subsystem;
-			windows_specific_fields.dll_characteristics = f.dll_characteristics;
-			windows_specific_fields.size_of_stack_reserve = f.size_of_stack_reserve;
-			windows_specific_fields.size_of_stack_commit = f.size_of_stack_commit;
-			windows_specific_fields.size_of_heap_reserve = f.size_of_heap_reserve;
-			windows_specific_fields.size_of_heap_commit = f.size_of_heap_commit;
-			windows_specific_fields.loader_flags = f.loader_flags;
-			windows_specific_fields.number_of_rva_and_sizes = f.number_of_rva_and_sizes;
+		// read windows specific field
+		if(_standard_coff_fields.magic == PE32P) {
+			stream->moveBackward(sizeof(t::uint32));
+			read(
+				&_windows_specific_fields,
+				sizeof(_windows_specific_fields));
+			swap(_windows_specific_fields.image_base);
+			swap(_windows_specific_fields.size_of_stack_reserve);
+			swap(_windows_specific_fields.size_of_stack_commit);
+			swap(_windows_specific_fields.size_of_heap_reserve);
+			swap(_windows_specific_fields.size_of_heap_commit);
 		}
 		else {
-			read(&windows_specific_fields, sizeof(windows_specific_fields));
-			swap(windows_specific_fields.image_base);
-			swap(windows_specific_fields.section_alignment);
-			swap(windows_specific_fields.file_alignment);
-			swap(windows_specific_fields.major_operating_system_version);
-			swap(windows_specific_fields.minor_operating_system_version);
-			swap(windows_specific_fields.major_image_version);
-			swap(windows_specific_fields.minor_image_version);
-			swap(windows_specific_fields.major_subsystem_version);
-			swap(windows_specific_fields.minor_subsystem_version);
-			swap(windows_specific_fields.win32_version_value);
-			swap(windows_specific_fields.size_of_image);
-			swap(windows_specific_fields.size_of_headers);
-			swap(windows_specific_fields.checksum);
-			swap(windows_specific_fields.subsystem);
-			swap(windows_specific_fields.dll_characteristics);
-			swap(windows_specific_fields.size_of_stack_reserve);
-			swap(windows_specific_fields.size_of_stack_commit);
-			swap(windows_specific_fields.size_of_heap_reserve);
-			swap(windows_specific_fields.size_of_heap_commit);
-			swap(windows_specific_fields.loader_flags);
-			swap(windows_specific_fields.number_of_rva_and_sizes);
+			windows_specific_fields_32_t w32;
+			read(&w32, sizeof(w32));
+			swap(w32.image_base);
+			swap(w32.size_of_stack_reserve);
+			swap(w32.size_of_stack_commit);
+			swap(w32.size_of_heap_reserve);
+			swap(w32.size_of_heap_commit);
+			_windows_specific_fields.image_base = w32.image_base;
+			_windows_specific_fields.section_alignment = w32.section_alignment;
+			_windows_specific_fields.file_alignment = w32.file_alignment;
+			_windows_specific_fields.major_operating_system_version = w32.major_operating_system_version;
+			_windows_specific_fields.minor_operating_system_version = w32.minor_operating_system_version;
+			_windows_specific_fields.major_image_version = w32.major_image_version;
+			_windows_specific_fields.minor_image_version = w32.minor_image_version;
+			_windows_specific_fields.major_subsystem_version = w32.major_subsystem_version;
+			_windows_specific_fields.minor_subsystem_version = w32.minor_subsystem_version;
+			_windows_specific_fields.win32_version_value = w32.win32_version_value;
+			_windows_specific_fields.size_of_image = w32.size_of_image;
+			_windows_specific_fields.size_of_headers = w32.size_of_headers;
+			_windows_specific_fields.checksum = w32.checksum;
+			_windows_specific_fields.subsystem = w32.subsystem;
+			_windows_specific_fields.dll_characteristics = w32.dll_characteristics;
+			_windows_specific_fields.size_of_stack_reserve = w32.size_of_stack_reserve;
+			_windows_specific_fields.size_of_stack_commit = w32.size_of_stack_commit;
+			_windows_specific_fields.size_of_heap_reserve = w32.size_of_heap_reserve;
+			_windows_specific_fields.size_of_heap_commit = w32.size_of_heap_commit;
+			_windows_specific_fields.loader_flags = w32.loader_flags;
+			_windows_specific_fields.number_of_rva_and_sizes = w32.number_of_rva_and_sizes;
 		}
-		IMARK;
+		swap(_windows_specific_fields.section_alignment);
+		swap(_windows_specific_fields.file_alignment);
+		swap(_windows_specific_fields.major_operating_system_version);
+		swap(_windows_specific_fields.minor_operating_system_version);
+		swap(_windows_specific_fields.major_image_version);
+		swap(_windows_specific_fields.minor_image_version);
+		swap(_windows_specific_fields.major_subsystem_version);
+		swap(_windows_specific_fields.minor_subsystem_version);
+		swap(_windows_specific_fields.win32_version_value);
+		swap(_windows_specific_fields.size_of_image);
+		swap(_windows_specific_fields.size_of_headers);
+		swap(_windows_specific_fields.checksum);
+		swap(_windows_specific_fields.subsystem);
+		swap(_windows_specific_fields.dll_characteristics);
+		swap(_windows_specific_fields.loader_flags);
+		swap(_windows_specific_fields.number_of_rva_and_sizes);
+		/*cerr << "DEBUG: _windows_specific_fields\n"
+			<< io::hex(_windows_specific_fields.image_base) << io::endl
+			<< io::hex(_windows_specific_fields.section_alignment) << io::endl
+			<< io::hex(_windows_specific_fields.file_alignment) << io::endl
+			<< io::hex(_windows_specific_fields.major_operating_system_version) << io::endl
+			<< io::hex(_windows_specific_fields.minor_operating_system_version) << io::endl
+			<< io::hex(_windows_specific_fields.major_image_version) << io::endl
+			<< io::hex(_windows_specific_fields.minor_image_version) << io::endl
+			<< io::hex(_windows_specific_fields.major_subsystem_version) << io::endl
+			<< io::hex(_windows_specific_fields.minor_subsystem_version) << io::endl
+			<< io::hex(_windows_specific_fields.win32_version_value) << io::endl
+			<< io::hex(_windows_specific_fields.size_of_image) << io::endl
+			<< io::hex(_windows_specific_fields.size_of_headers) << io::endl
+			<< io::hex(_windows_specific_fields.checksum) << io::endl
+			<< io::hex(_windows_specific_fields.subsystem) << io::endl
+			<< io::hex(_windows_specific_fields.dll_characteristics) << io::endl
+			<< io::hex(_windows_specific_fields.size_of_stack_reserve) << io::endl
+			<< io::hex(_windows_specific_fields.size_of_stack_commit) << io::endl
+			<< io::hex(_windows_specific_fields.size_of_heap_reserve) << io::endl
+			<< io::hex(_windows_specific_fields.size_of_heap_commit) << io::endl
+			<< io::hex(_windows_specific_fields.loader_flags) << io::endl
+			<< io::hex(_windows_specific_fields.number_of_rva_and_sizes) << io::endl;
+		*/
+		
+		// read data directories
+		_data_directories = new data_directory_t[_windows_specific_fields.number_of_rva_and_sizes];
+		read(_data_directories, sizeof(data_directory_t) * _windows_specific_fields.number_of_rva_and_sizes);
+		for(unsigned i = 0; i < _windows_specific_fields.number_of_rva_and_sizes; i++) {
+			swap(_data_directories[i].size);
+			swap(_data_directories[i].virtual_address);
+			/*cerr << "DEBUG: " << i
+				 << ": " << io::hex(_data_directories[i].virtual_address)
+				 << ": " << io::hex(_data_directories[i].size) << io::endl;
+			*/
+		}
 
-		// read RVAs
-		t::uint32 rva_size = _header.size_of_optional_header - standard_fields_size - windows_specific_fields_size;
-		if(rva_size / sizeof(image_data_directory_t) != windows_specific_fields.number_of_rva_and_sizes)
-			raise("inconsistency in RVA size");
-		rvas = new image_data_directory_t[windows_specific_fields.number_of_rva_and_sizes];
-		read(rvas, sizeof(image_data_directory_t) * windows_specific_fields.number_of_rva_and_sizes);
-		IMARK;
-
-		// read the section headers
-		hds = new section_header_t[_header.number_of_sections];
-		read(hds, sizeof(section_header_t) * _header.number_of_sections);
-		for(int i = 0; i < _header.number_of_sections; i++)
-			sects.add(new Section(this, &hds[i]));
-		IMARK;
+		// read the sections
+		_section_table = new section_header_t[_coff_header.number_of_sections];
+		read(_section_table, _coff_header.number_of_sections * sizeof(section_header_t));
+		for(unsigned i = 0; i < _coff_header.number_of_sections; i++) {
+			swap(_section_table[i].virtual_size);
+			swap(_section_table[i].virtual_address);
+			swap(_section_table[i].size_of_raw_data);
+			swap(_section_table[i].pointer_to_raw_data);
+			swap(_section_table[i].pointer_to_relocations);
+			swap(_section_table[i].pointer_to_line_numbers);
+			swap(_section_table[i].number_of_relocations);
+			swap(_section_table[i].number_of_line_numbers);
+			swap(_section_table[i].characteristics);
+			sects.add(new Section(this, &_section_table[i]));
+			/*cerr << "DEBUG: "
+				 << sects.top()->name() << ' '
+				 << io::hex(_section_table[i].virtual_address) << ":"
+				 << io::hex(_section_table[i].virtual_size) << ' '
+				 << io::hex(_section_table[i].pointer_to_raw_data) << ":"
+				 << io::hex(_section_table[i].size_of_raw_data) << ' '
+				 << io::hex(_section_table[i].pointer_to_relocations) << ":"
+				 << io::hex(_section_table[i].number_of_relocations) << ' '
+				 << io::hex(_section_table[i].pointer_to_line_numbers) << ":"
+				 << io::hex(_section_table[i].number_of_line_numbers) << ' '
+				 << io::hex(_section_table[i].characteristics) << io::endl;
+			*/
+		}
+		
 	}
 	catch(sys::SystemException& e) {
 		raise(e.message());
@@ -443,12 +508,91 @@ File::File(Manager& manager, sys::Path path):
 File::~File() {
 	if(stream != nullptr)
 		delete stream;
-	if(rvas != nullptr)
-		delete [] rvas;
-	if(hds != nullptr)
-		delete [] hds;
+	if(_data_directories != nullptr)
+		delete [] _data_directories;
+	if(_section_table != nullptr)
+		delete [] _section_table;
+	if(_symbol_table != nullptr)
+		delete [] _symbol_table;
+	if(_string_table != nullptr)
+		delete [] _string_table;
 	deleteAll(sects);
 }
+
+///
+cstring File::machine() const {
+	switch(_coff_header.machine) {
+	case IMAGE_FILE_MACHINE_AM33:			return "Matsushita AM33";
+	case IMAGE_FILE_MACHINE_ARM:			return "ARM";
+	case IMAGE_FILE_MACHINE_ARM64:			return "ARM64";
+	case IMAGE_FILE_MACHINE_ARMNT:			return "ARM Thumb-2";
+	case IMAGE_FILE_MACHINE_EBC:			return "EFI byte-code";
+	case IMAGE_FILE_MACHINE_I386:			return "Intel 386";
+	case IMAGE_FILE_MACHINE_IA64:			return "Intel Itanium";
+	case IMAGE_FILE_MACHINE_LOONGARCH32:	return "LoongArch";
+	case IMAGE_FILE_MACHINE_M32R:			return "Mitsubishi M32R";
+	case IMAGE_FILE_MACHINE_MIPS16:			return "MIPS16";
+	case IMAGE_FILE_MACHINE_MIPSFPU:		return "MIPS with FPU";
+	case IMAGE_FILE_MACHINE_MIPSFPU16:		return "MIPS16 with FPU";
+	case IMAGE_FILE_MACHINE_POWERPC:		return "Power PC";
+	case IMAGE_FILE_MACHINE_POWERPCFP:		return "Power PC with FPU";
+	case IMAGE_FILE_MACHINE_R4000:			return "MIPS";
+	case IMAGE_FILE_MACHINE_RISCV32:		return "RISC-V 32-bit";
+	case IMAGE_FILE_MACHINE_RISCV64:		return "RISC-V 64-bit";
+	case IMAGE_FILE_MACHINE_RISCV128:		return "RISC-V 128-bit";
+	case IMAGE_FILE_MACHINE_SH3:			return "Hitachi SH3";
+	case IMAGE_FILE_MACHINE_SH3DSP:			return "Hitachi SH3 DSP";
+	case IMAGE_FILE_MACHINE_SH4:			return "Hitachi SH4";
+	case IMAGE_FILE_MACHINE_SH5:			return "Hitachi SH5";
+	case IMAGE_FILE_MACHINE_THUMB:			return "Thumb";
+	case IMAGE_FILE_MACHINE_WCEMIPSV2:		return "MIPS WCET v2";
+	case IMAGE_FILE_MACHINE_UNKNOWN:
+	default:							return "unknown";
+	}
+}
+
+///
+cstring File::os() const {
+	return "windows";
+}
+
+///
+int File::elfMachine() const {
+	switch(_coff_header.machine) {
+	case IMAGE_FILE_MACHINE_AM33:			return 89;
+	case IMAGE_FILE_MACHINE_ARM:			return 40;
+	case IMAGE_FILE_MACHINE_ARM64:			return 183;
+	case IMAGE_FILE_MACHINE_ARMNT:			return 40;
+	case IMAGE_FILE_MACHINE_EBC:			return 0;
+	case IMAGE_FILE_MACHINE_I386:			return 3;
+	case IMAGE_FILE_MACHINE_IA64:			return 50;
+	case IMAGE_FILE_MACHINE_LOONGARCH32:	return 258;
+	case IMAGE_FILE_MACHINE_M32R:			return 88;
+	case IMAGE_FILE_MACHINE_MIPS16:			return 8;
+	case IMAGE_FILE_MACHINE_MIPSFPU:		return 8;
+	case IMAGE_FILE_MACHINE_MIPSFPU16:		return 8;
+	case IMAGE_FILE_MACHINE_POWERPC:		return 20;
+	case IMAGE_FILE_MACHINE_POWERPCFP:		return 20;
+	case IMAGE_FILE_MACHINE_R4000:			return 8;
+	case IMAGE_FILE_MACHINE_RISCV32:		return 243;
+	case IMAGE_FILE_MACHINE_RISCV64:		return 243;
+	case IMAGE_FILE_MACHINE_RISCV128:		return 243;
+	case IMAGE_FILE_MACHINE_SH3:			return 42;
+	case IMAGE_FILE_MACHINE_SH3DSP:			return 42;
+	case IMAGE_FILE_MACHINE_SH4:			return 42;
+	case IMAGE_FILE_MACHINE_SH5:			return 42;
+	case IMAGE_FILE_MACHINE_THUMB:			return 40;
+	case IMAGE_FILE_MACHINE_WCEMIPSV2:		return 8;
+	case IMAGE_FILE_MACHINE_UNKNOWN:
+	default:								return 0;	
+	}
+}
+
+///
+int File::elfOS() const {
+	return 0;
+}
+
 
 
 /**
@@ -489,9 +633,9 @@ void File::move(offset_t offset) {
 
 ///
 File::type_t File::type() {
-	if((_header.characteristics & IMAGE_FILE_EXECUTABLE_IMAGE) != 0)
+	if((_coff_header.characteristics & IMAGE_FILE_EXECUTABLE_IMAGE) != 0)
 		return program;
-	else if((_header.characteristics & IMAGE_FILE_DLL) != 0)
+	else if((_coff_header.characteristics & IMAGE_FILE_DLL) != 0)
 		return library;
 	else
 		return no_type;
@@ -504,7 +648,7 @@ bool File::isBigEndian() {
 
 ///
 address_type_t File::addressType() {
-	if((_header.characteristics & IMAGE_FILE_32BIT_MACHINE) != 0)
+	if((_coff_header.characteristics & IMAGE_FILE_32BIT_MACHINE) != 0)
 		return address_32;
 	else
 		return address_16;
@@ -512,7 +656,7 @@ address_type_t File::addressType() {
 
 ///
 address_t File::entry() {
-	return standard_fields.address_of_entry_point;
+	return _standard_coff_fields.address_of_entry_point + _windows_specific_fields.image_base;
 }
 
 ///
@@ -535,6 +679,39 @@ const SymbolTable& File::symbols() {
 
 }
 
+/**
+ * Get the the string from the string table at the given offset.
+ * @throw Exception	If there is an IO error.
+ */
+cstring File::getString(t::uint32 offset) {
+	if(_string_table == nullptr) {
+		// symbol_t is not padded! Size is 18 and not 20!
+		stream->moveTo(_coff_header.pointer_to_symbol_table + 18 * _coff_header.number_of_symbols);
+		read(&_string_table_size, sizeof(_string_table_size));
+		swap(_string_table_size);
+		_string_table_size -= 4;
+		_string_table = new char[_string_table_size];
+		read(_string_table, _string_table_size);
+	}
+	return _string_table + offset - 4;
+}
+
+
+// Decoder override
+void File::fix(t::uint16& w) { swap(w); }
+void File::fix(t::int16& w) { t::uint16 x = w; swap(x); w = x; }
+void File::fix(t::uint32& w) { swap(w); }
+void File::fix(t::int32& w) { t::uint32 x = w; swap(x); w = x; }
+void File::fix(t::uint64& w) { swap(w); }
+void File::fix(t::int64& w) { t::uint64 x = w; swap(x); w = x; }
+
+void File::unfix(t::uint16& w) { fix(w); }
+void File::unfix(t::int16& w) { fix(w); }
+void File::unfix(t::uint32& w) { fix(w); }
+void File::unfix(t::int32& w) { fix(w); }
+void File::unfix(t::uint64& w) { fix(w); }
+void File::unfix(t::int64& w) { fix(w); }
+
 
 /**
  * @class Section
@@ -545,8 +722,14 @@ const SymbolTable& File::symbols() {
 
 ///
 Section::Section(File *file, const section_header_t *header):
-	hd(header), pec(file)
+	hd(header), pec(file), _buf(nullptr), _flags(-1)
 	{ }
+
+///
+Section::~Section() {
+	if(_buf != nullptr)
+		delete [] _buf;
+}
 
 /**
  * @fn const section_header_t& Section::header() const;
@@ -556,39 +739,105 @@ Section::Section(File *file, const section_header_t *header):
 
 ///
 cstring Section::name(void) {
-	return hd->name;
+	if(!_name) {
+		if(hd->name[0] == '/') {
+			t::uint32 offset;
+			string(hd->name + 1) >> offset;
+			_name = pec->getString(offset);
+		}
+		else if(hd->name[7] == '\0')
+			_name = hd->name;
+		else
+			_name = string(hd->name, 8);		
+	}
+	return _name.toCString();
 }
 
+///
 address_t Section::baseAddress(void) {
 	return hd->virtual_address;
 }
 
+///
 address_t Section::loadAddress(void) {
-	return hd->virtual_size;
+	return hd->virtual_address;
 }
 
+///
 size_t Section::size(void) {
 	return hd->virtual_size;
 }
 
+///
 size_t Section::alignment(void) {
 	int msk = (hd->characteristics & IMAGE_SCN_ALIGN_1BYTES >> 20) & 0xf;
 	return 1 << (msk - 1);
 }
 
+///
 bool Section::isExecutable(void) {
 	return (hd->characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
 }
 
+///
 bool Section::isWritable(void) {
 	return (hd->characteristics & IMAGE_SCN_MEM_WRITE) != 0;
 }
 
+///
 bool Section::hasContent(void) {
+	return !(hd->characteristics & IMAGE_SCN_MEM_DISCARDABLE);
 }
 
+///
 Buffer Section::buffer(void) {
+	if(_buf == nullptr) {
+		_buf = new t::uint8[hd->virtual_size];
+		if(hd->size_of_raw_data != 0) {
+			if(!pec->stream->moveTo(hd->pointer_to_raw_data)) {
+				delete [] _buf;
+				_buf = nullptr;
+				pec->raise(_ << "bad pointer_to_raw_data for section " << name());
+			}
+			pec->read(_buf, hd->size_of_raw_data);
+		}
+		if(hd->size_of_raw_data < hd->virtual_size)
+			array::clear(
+				_buf + hd->virtual_size,
+				hd->virtual_size - hd->size_of_raw_data);
+	}
+	return Buffer(pec, _buf, hd->virtual_size);
 }
+
+///
+size_t Section::offset() {
+	return hd->pointer_to_raw_data;
+}
+
+///
+size_t Section::fileSize() {
+	return hd->size_of_raw_data;
+}
+
+///
+flags_t Section::flags() {
+	if(_flags == flags_t(-1)) {
+		_flags = 0;
+		if(hd->characteristics & IMAGE_SCN_MEM_EXECUTE)
+			_flags |= IS_EXECUTABLE;
+		if(hd->characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)
+			_flags |= HAS_CONTENT;
+		if(!(hd->characteristics & IMAGE_SCN_LNK_REMOVE)
+		&& !(hd->characteristics & IMAGE_SCN_MEM_DISCARDABLE))
+			_flags |= IS_LOADABLE;
+		if(hd->characteristics & IMAGE_SCN_MEM_READ)
+			_flags |= IS_READABLE;
+		if(hd->characteristics & IMAGE_SCN_MEM_WRITE)
+			_flags |= IS_WRITABLE;
+	}
+	return _flags;
+}
+
 
 } } // gel::pecoff
 

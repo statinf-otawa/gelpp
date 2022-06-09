@@ -25,11 +25,12 @@
 namespace gel { namespace pecoff {
 
 typedef struct {
+	char signature[4];
 	t::uint16 machine;
 	t::uint16 number_of_sections;
 	t::uint32 time_date_stamp;
-	t::uint32 pointer_to_symbol_table;
-	t::uint32 number_of_symbols;
+	t::uint32 pointer_to_symbol_table;	// deprecated
+	t::uint32 number_of_symbols;		// deprecated
 	t::uint16 size_of_optional_header;
 	t::uint16 characteristics;
 } coff_header_t;
@@ -48,8 +49,8 @@ typedef struct {
 	t::uint32 size_of_unitialized_data;
 	t::uint32 address_of_entry_point;
 	t::uint32 base_of_code;
-	t::uint32 base_of_data;
-} standard_fields_t;
+	t::uint32 base_of_data;				// not in PE32+
+} standard_coff_fields_t;
 
 typedef struct {
 	t::uint32 image_base;
@@ -73,7 +74,7 @@ typedef struct {
 	t::uint32 size_of_heap_commit;
 	t::uint32 loader_flags;
 	t::uint32 number_of_rva_and_sizes;
-} pe32_windows_specific_fields_t;
+} windows_specific_fields_32_t;
 
 typedef struct {
 	t::uint64 image_base;
@@ -122,7 +123,7 @@ typedef enum {
 typedef struct {
 	t::uint32 virtual_address;
 	t::uint32 size;
-} image_data_directory_t;
+} data_directory_t;
 
 typedef struct {
 	char name[8];
@@ -152,11 +153,15 @@ typedef struct {
 	t::uint8 number_of_aux_symbols;
 } symbol_t;
 
+
+
+
 class File;
-class Section: public gel::Segment {
+class Section: public gel::Section {
 	friend class PECOFF;
 public:
 	Section(File *file, const section_header_t *header);
+	~Section();
 	inline const section_header_t&header(void) const { return *hd; }
 
 	cstring name(void) override;
@@ -168,19 +173,25 @@ public:
 	bool isWritable(void) override;
 	bool hasContent(void) override;
 	Buffer buffer(void) override;
+	size_t offset() override;
+	size_t fileSize() override;
+	flags_t flags() override;
 
 private:
 	const section_header_t *hd;
 	File *pec;
 	string _name;
+	t::uint8 *_buf;
+	flags_t _flags;
 };
 
-
-class File: public gel::File {
+class File: public gel::File, public Decoder {
+	friend class Section;
 public:
-	File(Manager& manager, sys::Path path);
+	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream);
 	~File(void);
-
+	static bool matches(t::uint8 magic[4]);
+	
 	type_t type(void) override;
 	bool isBigEndian(void) override;
 	address_type_t addressType(void) override;
@@ -189,21 +200,41 @@ public:
 	Segment *segment(int i) override;
 	Image *make(const Parameter& params) override;
 
+	cstring machine() const override;
+	cstring os() const override;
+	int elfMachine() const override;
+	int elfOS() const override;
 	const SymbolTable& symbols() override;
+
+	void fix(t::uint16& w) override;
+	void fix(t::int16& w) override;
+	void fix(t::uint32& w) override;
+	void fix(t::int32& w) override;
+	void fix(t::uint64& w) override;
+	void fix(t::int64& w) override;
+
+	void unfix(t::uint16& w) override;
+	void unfix(t::int16& w) override;
+	void unfix(t::uint32& w) override;
+	void unfix(t::int32& w) override;
+	void unfix(t::uint64& w) override;
+	void unfix(t::int64& w) override;
 
 private:
 	void raise(const string& msg);
 	void read(void *buf, int len);
 	void move(offset_t offset);
-
+	cstring getString(t::uint32 offset);
+	
 	io::RandomAccessStream *stream;
-	coff_header_t _header;
-	standard_fields_t standard_fields;
-	windows_specific_fields_t windows_specific_fields;
-	image_data_directory_t *rvas;
-	section_header_t *hds;
-	char *str_tab;
-	t::uint32 str_size;
+	coff_header_t _coff_header;
+	standard_coff_fields_t _standard_coff_fields;
+	windows_specific_fields_t _windows_specific_fields;
+	data_directory_t *_data_directories;
+	section_header_t *_section_table;
+	symbol_t *_symbol_table;
+	char *_string_table;
+	t::uint32 _string_table_size;
 	Vector<Section *> sects;
 };
 

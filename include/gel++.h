@@ -21,6 +21,7 @@
 
 #include <elm/sys/Path.h>
 #include <elm/util/ErrorHandler.h>
+#include <elm/io/RandomAccessStream.h>
 #include <gel++/Exception.h>
 #include <gel++/File.h>
 #include <gel++/Image.h>
@@ -31,6 +32,7 @@ using namespace elm;
 
 class File;
 namespace elf { class File; }
+namespace pecoff { class File; }
 
 class Manager: public ErrorBase {
 public:
@@ -40,6 +42,9 @@ public:
 	static Manager DEFAULT;
 	File *openFile(sys::Path path);
 	elf::File *openELFFile(sys::Path path);
+	elf::File *openELFFile(sys::Path path, io::RandomAccessStream *stream);
+	pecoff::File *openPECOFFFile(sys::Path path, io::RandomAccessStream *stream);
+	
 };
 
 }	// gel

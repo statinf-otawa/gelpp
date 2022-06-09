@@ -198,6 +198,39 @@ cstring Segment::defaultName(Segment *seg) {
 
 
 /**
+ * @class Section
+ * A section is a logical division of a binary file. A section can be used to
+ * represent image parts of a binary as well as convenient part as debugging
+ * information, symbol table, relocation table, etc.
+ * 
+ * Often, a segment, that is a part of the image, is made of one or several
+ * sections.
+ */
+
+///
+Section::~Section() { }
+
+/**
+ * @fn size_t Section::offset();
+ * Get the offset in the file.
+ * @return	Offset in the file (in bytes).
+ */
+
+/**
+ * size_t Section::fileSize();
+ * Get the size in the file of the section (may be different from the size
+ * in the image).
+ * @return	File size in bytes.
+ */
+
+/**
+ * @fn flags_t Section::flags();
+ * Get flags describing the section.
+ * @return Section flags (OR'ed combination of @ref flag_values_t).
+ */
+
+
+/**
  * @class File
  * Interface of the files opened by GEL++.
  */
@@ -238,6 +271,27 @@ elf::File *File::toELF() {
  * @return	ELF file handler or null.
  */
 elf::File64 *File::toELF64() {
+	return nullptr;
+}
+
+
+/**
+ * Get the count opf sections.
+ * @return	Number of sections. 0 if the section concept is not supported
+ * 			by the format.
+ */
+int File::countSections() {
+	return 0;
+}
+
+
+/**
+ * Get the section at index i.
+ * @param i		Section index (between 0 and File::countSections()).
+ * @return		Section at the given index.
+ */
+Section *File::section(int i) {
+	ASSERTP(false, "sections not supported");
 	return nullptr;
 }
 

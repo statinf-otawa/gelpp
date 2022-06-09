@@ -77,6 +77,20 @@ void File::unfix(t::int32& i)	{ i = UN_ENDIAN4(id[EI_DATA], i); }
 void File::unfix(t::uint64& i)	{ i = UN_ENDIAN8(id[EI_DATA], i); }
 void File::unfix(t::int64& i)	{ i = UN_ENDIAN8(id[EI_DATA], i); }
 
+
+/**
+ * Test if the given magic number matches ELF.
+ * param magic	Magic number to be tested.
+ * @return		True if magic number is PE-COFF, false else.
+ */
+bool File::matches(t::uint8 magic[4]) {
+	return magic[0] == ELFMAG0
+		&& magic[1] == ELFMAG1
+		&& magic[2] == ELFMAG2
+		&& magic[3] == ELFMAG3;
+}
+
+
 /**
  * Constructor.
  * @param manager	Parent manager.

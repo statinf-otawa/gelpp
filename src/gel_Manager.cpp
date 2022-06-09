@@ -24,6 +24,7 @@
 #include <gel++/elf/File32.h>
 #include <gel++/elf/File64.h>
 #include <gel++/elf/common.h>
+#include <gel++/pecoff/File.h>
 
 namespace gel {
 
@@ -51,33 +52,33 @@ File *Manager::openFile(sys::Path path) {
 	try {
 		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
 
-		// lookup head
-		t::uint8 buf[EI_NIDENT];
-		int bufs = s->read(buf, sizeof(buf));
-
+		// read first four bytes
+		t::uint8 magic[4];
+		t::size size = s->read(magic, sizeof(magic));
+		s->moveTo(0);
+		if(size < sizeof(magic))
+			throw Exception("does not seem to be a binary!");
+		
 		// is it ELF?
-		if(bufs >= 4
-		&& buf[EI_MAG0] == ELFMAG0
-		&& buf[EI_MAG1] == ELFMAG1
-		&& buf[EI_MAG2] == ELFMAG2
-		&& buf[EI_MAG3] == ELFMAG3) {
-			if(bufs < EI_NIDENT)
-				throw Exception("incomplete header in ELF");
-			s->moveTo(0);
-			switch(buf[EI_CLASS]) {
-			case ELFCLASS32:	return new elf::File32(*this, path, s);
-			case ELFCLASS64:	return new elf::File64(*this, path, s);
-			default:			throw Exception(_ << "unknown ELF class: " << io::hex(buf[EI_CLASS]));
-			}
-		}
-
+		if(elf::File::matches(magic))
+			return openELFFile(path, s);
+		
+		// is it PE-COFF?
+		else if(pecoff::File::matches(magic))
+			return openPECOFFFile(path, s);
+			
 		// else I don't know
-		throw Exception(_ << "unknown executable format with magic: " << io::hex(buf[0]) << io::hex(buf[1]) << io::hex(buf[2]) << io::hex(buf[3]));
+		throw Exception(_
+			<< "unknown executable format with magic: "
+			<< io::hex(magic[0])
+			<< io::hex(magic[1])
+			<< io::hex(magic[2])
+			<< io::hex(magic[3]));
 	}
 	catch(sys::SystemException& e) {
 		throw Exception(e.message());
 	}
-	return 0;
+	return nullptr;
 }
 
 
@@ -89,21 +90,37 @@ File *Manager::openFile(sys::Path path) {
  * @throw gel::Exception	If there is an error.
  */
 elf::File *Manager::openELFFile(sys::Path path) {
+	io::RandomAccessStream *s = nullptr;
+	try {
+		s = sys::System::openRandomFile(path, sys::System::READ);
+		return openELFFile(path, s);
+	}
+	catch(sys::SystemException& e) {
+		throw Exception(e.message());
+	}
+}
+
+
+/**
+ * Open an ELF executable file. Caller is in charge of releasing
+ * the obtained file.
+ * @param path				Path to the file.
+ * @param stream			Stream to read from.
+ * @return					Open file.
+ * @throw gel::Exception	If there is an error.
+ */
+elf::File *Manager::openELFFile(sys::Path path, io::RandomAccessStream *stream) {
 	try {
 		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
 
 		// lookup head
 		t::uint8 buf[EI_NIDENT];
 		int bufs = s->read(buf, sizeof(buf));
-		s->moveTo(0);
-
-		// is it ELF?
 		if(bufs < EI_NIDENT)
 			throw Exception("not an ELF file");
-		if(buf[EI_MAG0] != ELFMAG0
-		|| buf[EI_MAG1] != ELFMAG1
-		|| buf[EI_MAG2] != ELFMAG2
-		|| buf[EI_MAG3] != ELFMAG3)
+
+		// is it ELF?
+		if(elf::File::matches(buf))
 			throw Exception("incomplete header in ELF");
 
 		// open the right ELF
@@ -116,7 +133,20 @@ elf::File *Manager::openELFFile(sys::Path path) {
 	catch(sys::SystemException& e) {
 		throw Exception(e.message());
 	}
-	return 0;
+	return nullptr;
+}
+
+
+/**
+ * Open a PE-COFF executable file. Caller is in charge of releasing
+ * the obtained file.
+ * @param path				Path to the file.
+ * @param stream			Stream to read from.
+ * @return					Open file.
+ * @throw gel::Exception	If there is an error.
+ */
+pecoff::File *Manager::openPECOFFFile(sys::Path path, io::RandomAccessStream *stream) {
+	return new pecoff::File(*this, path, stream);
 }
 
 

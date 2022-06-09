@@ -125,6 +125,7 @@ class File: public gel::File, public Decoder {
 public:
 	File(Manager& manager, sys::Path path, io::RandomAccessStream *stream);
 	virtual ~File(void);
+	static bool matches(t::uint8 magic[4]);
 
 	virtual int elfType() = 0;
 	virtual t::uint16 version() = 0;
