@@ -298,7 +298,8 @@ Section *File::section(int i) {
 
 /**
  * If available, returns debugging information about the map
- * between the code and the source lines.
+ * between the code and the source lines. Notice that the ownership of then
+ * returned object is still the GEL file (it cannot be deleted).
  * @return	Debug source line information if any, nullptr else.
  */
 DebugLine *File::debugLines() {

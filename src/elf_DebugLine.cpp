@@ -23,7 +23,7 @@
 
 namespace gel { namespace elf {
 
-#define DO_DEBUG
+//#define DO_DEBUG
 #define DEBUG_OUT(txt)	cerr << "DEBUG: " << txt << io::endl;
 #ifdef DO_DEBUG
 #	define DEBUG(txt)	DEBUG_OUT(txt)
@@ -97,19 +97,7 @@ namespace gel { namespace elf {
  * Build source line debug information for the given ELF file.
  * @param efile
  */
-DebugLine::DebugLine(elf::File *efile): gel::DebugLine(efile) {
-
-	// customize according to the type of file
-	if(efile->addressType() == address_32) {
-		addr_size = 4;
-		length_size = 4;
-	}
-	else if(efile->addressType() == address_64) {
-		addr_size = 8;
-		length_size = 12;
-	}
-	else
-		throw gel::Exception("unsupported address type");
+DebugLine::DebugLine(elf::File *efile): gel::DebugLine(efile), is_64(false) {
 
 	// get the buffer
 	elf::Section *sect = efile->findSection(".debug_line");
@@ -148,6 +136,7 @@ void DebugLine::readCU(Cursor& c) {
 	// parse the header
 	try {
 		readHeader(c, sm, cu);
+		DEBUG("readHeader: file = " << sm.file);
 		if(c.offset() < end_offset)
 			runSM(c, sm, cu, end_offset);
 	}
@@ -162,12 +151,12 @@ void DebugLine::readCU(Cursor& c) {
 }
 
 void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
-	error_if(!c.avail(8 + length_size));
 
 	// skip version
 	t::uint16 version;
-	c.read(version);
+	error_if(!c.read(version));
 	static_cast<elf::File&>(prog).fix(version);
+	DEBUG("version = " << version);
 	if(version > 4)
 		throw gel::Exception(_ << "DWARF version > 4 (" << version << ")");
 
@@ -178,7 +167,7 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	// read header length
 	size_t header_length = readHeaderLength(c);
 	size_t lines = c.offset() + header_length;
-	//DEBUG("lines = " << lines);
+	DEBUG("header length = " << io::hex(header_length));
 
 	// base information
 	c.read(sm.minimum_instruction_length);
@@ -202,7 +191,7 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	error_if(!c.avail(sm.opcode_base - 1));
 	sm.standard_opcode_lengths = c.here();
 #		ifdef DO_DEBUG
-			cerr << "standard opcode lengths =";
+			cerr << "DEBUG: standard opcode lengths: ";
 			for(int i = 0; i < sm.opcode_base - 1; i++)
 				cerr << " " << sm.standard_opcode_lengths[i];
 			cerr << io::endl;
@@ -350,9 +339,12 @@ void DebugLine::advanceLine(StateMachine& sm, t::int64 adv) {
 }
 
 void DebugLine::recordLine(StateMachine& sm, CompilationUnit *cu) {
+	DEBUG("file = " << sm.file);
 	File *file = cu->files()[sm.file - 1];
-	DEBUG("line " << io::hex(sm.address) << " "
-		 << file->path() << ":" << sm.line << ":" << sm.column);
+	DEBUG("line "
+		<< io::hex(sm.address) << " "
+		<< file->path() << ":"
+		<< sm.line << ":" << sm.column);
 
 	// record the line
 	cu->add(LineNumber(sm.address, file, sm.line,
@@ -375,14 +367,14 @@ bool DebugLine::readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	sys::Path p;
 	if(dir == 0) {
 		p = sys::Path(".") / sys::Path(s);
-		cerr << "DEBUG: no dire: " << p << io::endl;
+		DEBUG("no dire: " << p <<);
 	}
 	else {
-		cerr << "DEBUG: " << dir << ":" << sm.include_directories[dir] << io::endl;
+		DEBUG(dir << ":" << sm.include_directories[dir]);
 		p = sys::Path(sm.include_directories[dir]) / s;
-		cerr << "DEBUG: p = " << p << io::endl;
+		DEBUG("p = " << p);
 	}
-	cerr << "DEBUG: p = " << (void *)&p << ":" << p << io::endl;
+	DEBUG("p = " << (void *)&p << ":");
 	File *f = files().get(p, nullptr);
 	if(f == nullptr) {
 		f = new File(p, date, size);
@@ -393,7 +385,7 @@ bool DebugLine::readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 }
 
 size_t DebugLine::readHeaderLength(Cursor& c) {
-	if(addr_size == 4) {
+	if(!is_64) {
 		t::uint32 l;
 		c.read(l);
 		static_cast<elf::File&>(prog).fix(l);
@@ -408,18 +400,16 @@ size_t DebugLine::readHeaderLength(Cursor& c) {
 }
 
 size_t DebugLine::readUnitLength(Cursor& c) {
-	if(!c.avail(length_size))
-		throw gel::Exception("bad length");
 	t::uint32 l;
 	error_if(!c.read(l));
-	if(addr_size == 4) {
+	if(l < 0xffffff00) {
 		static_cast<elf::File&>(prog).fix(l);
+		is_64 = false;
 		return l;
 	}
-	if(l != 0xffffffffff)
-		throw gel::Exception("bad 64-bit length");
 	t::uint64 ll;
 	error_if(!c.read(ll));
+	is_64 = true;
 	static_cast<elf::File&>(prog).fix(ll);
 	return ll;
 }
@@ -451,7 +441,7 @@ t::uint64 DebugLine::readLEB128U(Cursor& c) {
 }
 
 address_t DebugLine::readAddress(Cursor& c) {
-	if(addr_size == 4) {
+	if(!is_64) {
 		t::uint32 a;
 		error_if(!c.read(a));
 		static_cast<elf::File&>(prog).fix(a);

@@ -83,7 +83,7 @@ private:
 		{ if(cond) throw gel::Exception("debug line error"); }
 	address_t readAddress(Cursor& c);
 
-	int addr_size, length_size;
+	bool is_64;
 };
 
 } }	// gel::elf

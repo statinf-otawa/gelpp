@@ -94,19 +94,24 @@ public:
 		const Vector<File *>& files() const { return _files; }
 		void add(const LineNumber& num);
 		void add(File *file);
+		address_t baseAddress() const;
+		address_t topAddress() const;
+		inline size_t size() const { return topAddress() - baseAddress(); }
+		const LineNumber *lineAt(address_t addr) const;
 	private:
 		Vector<File *> _files;
 		FragTable<LineNumber> _lines;
 	};
 
 	DebugLine(gel::File *file);
-	virtual ~DebugLine();
 
 	inline const HashMap<sys::Path, File *>& files() const { return _files; }
 	inline const FragTable<CompilationUnit *>& units() const { return _cus; }
 	inline gel::File& program() const { return prog; }
-
+	const LineNumber *lineAt(address_t addr) const;
+	
 protected:
+	virtual ~DebugLine();
 	void add(CompilationUnit *cu);
 	void add(File *file);
 	gel::File& prog;

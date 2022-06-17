@@ -55,7 +55,7 @@ File *Manager::openFile(sys::Path path) {
 		// read first four bytes
 		t::uint8 magic[4];
 		t::size size = s->read(magic, sizeof(magic));
-		s->moveTo(0);
+		s->resetPos();
 		if(size < sizeof(magic))
 			throw Exception("does not seem to be a binary!");
 		
@@ -111,22 +111,21 @@ elf::File *Manager::openELFFile(sys::Path path) {
  */
 elf::File *Manager::openELFFile(sys::Path path, io::RandomAccessStream *stream) {
 	try {
-		io::RandomAccessStream *s = sys::System::openRandomFile(path, sys::System::READ);
 
 		// lookup head
 		t::uint8 buf[EI_NIDENT];
-		int bufs = s->read(buf, sizeof(buf));
+		int bufs = stream->read(buf, sizeof(buf));
 		if(bufs < EI_NIDENT)
 			throw Exception("not an ELF file");
 
 		// is it ELF?
-		if(elf::File::matches(buf))
-			throw Exception("incomplete header in ELF");
+		if(!elf::File::matches(buf))
+			throw Exception("bad header in ELF");
 
 		// open the right ELF
 		switch(buf[EI_CLASS]) {
-		case ELFCLASS32:	return new elf::File32(*this, path, s);
-		case ELFCLASS64:	return new elf::File64(*this, path, s);
+		case ELFCLASS32:	return new elf::File32(*this, path, stream);
+		case ELFCLASS64:	return new elf::File64(*this, path, stream);
 		default:			throw Exception(_ << "unknown ELF class: " << io::hex(buf[EI_CLASS]));
 		}
 	}

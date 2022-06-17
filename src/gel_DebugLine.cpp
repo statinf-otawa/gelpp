@@ -163,6 +163,39 @@ void DebugLine::CompilationUnit::add(File *file) {
 	file->_units.add(this);
 }
 
+/**
+ * Get the base address of the compilation unit.
+ * @return	Base address.
+ */
+address_t DebugLine::CompilationUnit::baseAddress() const {
+	return _lines[0].addr();
+}
+
+/**
+ * Get the top address of the compilation unit.
+ * @return	Top address.
+ */
+address_t DebugLine::CompilationUnit::topAddress() const {
+	return _lines[_lines.count() - 1].addr();
+}
+
+/**
+ * @fn size_t DebugLine::CompilationUnit::size() const;
+ * Compute the size of the compilation unit.
+ * @return	Compilation unit size in bytes.
+ */
+
+/**
+ * Find the line description corresponding to the given address.
+ * @return	Found line number or null pointer.
+ */
+const DebugLine::LineNumber *DebugLine::CompilationUnit::lineAt(address_t addr) const {
+	for(int i = 0; i < _lines.count() - 1; i++)
+		if(_lines[i].addr() <= addr && addr < _lines[i+1].addr())
+			return &_lines[i];
+	return nullptr;
+}
+
 
 /**
  * @class DebugLine::StateMachine
@@ -187,6 +220,18 @@ DebugLine::~DebugLine() {
 	deleteAll(_files);
 	deleteAll(_cus);
 }
+
+/**
+ * Find the line at the given address.
+ * @return	Found line or null.
+ */
+const DebugLine::LineNumber *DebugLine::lineAt(address_t addr) const {
+	for(auto unit: _cus)
+		if(unit->baseAddress() <= addr && addr < unit->topAddress())
+			return unit->lineAt(addr);
+	return nullptr;
+}
+
 
 /**
  * Add a compilation unit.

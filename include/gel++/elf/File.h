@@ -29,6 +29,8 @@
 
 namespace gel { namespace elf {
 
+class DebugLine;
+	
 class ProgramHeader {
 public:
 	ProgramHeader(elf::File *file);
@@ -145,7 +147,7 @@ public:
 	cstring stringAt(t::uint64 offset);
 	cstring stringAt(t::uint64 offset, int sect);
 
-	const gel::SymbolTable& symbols();
+	const gel::SymbolTable& symbols() override;
 	virtual void fillSymbolTable(SymbolTable& symtab, Section *sect) = 0;
 
 	// gel::File overload
@@ -156,6 +158,7 @@ public:
 	gel::Segment *segment(int i) override;
 	cstring machine() const override;
 	cstring os() const override;
+	gel::DebugLine *debugLines() override;
 	
 	// Decoder override
 	void fix(t::uint16& i) override;
@@ -231,6 +234,7 @@ private:
 	SymbolTable *syms;
 	Vector<Segment *> segs;
 	bool segs_init;
+	DebugLine *debug;
 };
 
 class NoteIter {

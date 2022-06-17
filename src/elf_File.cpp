@@ -21,6 +21,7 @@
 #include <gel++/elf/defs.h>
 #include <gel++/elf/File.h>
 #include <gel++/elf/UnixBuilder.h>
+#include <gel++/elf/DebugLine.h>
 #include <gel++/Image.h>
 
 namespace gel { namespace elf {
@@ -105,7 +106,8 @@ File::File(Manager& manager, sys::Path path, io::RandomAccessStream *stream)
 	sects_loaded(false),
 	str_tab(nullptr),
 	syms(nullptr),
-	segs_init(false)
+	segs_init(false),
+	debug(nullptr)
 {
 }
 
@@ -354,6 +356,14 @@ cstring File::os() const {
 	case ELFOSABI_STANDALONE:	return "standalone";
 	default:					return gel::File::os();
 	}
+}
+
+
+///
+gel::DebugLine *File::debugLines() {
+	if(debug == nullptr)
+		debug = new DebugLine(this);
+	return debug;
 }
 
 

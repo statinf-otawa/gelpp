@@ -43,9 +43,10 @@ public:
 	void run() override {
 		for(int i = 0; i < args.count(); i++)
 			try {
-				elf::File *f = gel::Manager::openELF(args[i]);
-				auto dl = new elf::DebugLine(f);
-
+				auto f = gel::Manager::open(args[i]);
+				auto dl = f->debugLines();
+				ASSERT(dl != nullptr);
+				
 				// set the address format
 				if(f->addressType() == gel::address_32)
 					addr_fmt.width(8);
@@ -58,7 +59,6 @@ public:
 				else
 					listFiles(dl);
 
-				delete dl;
 				delete f;
 			}
 			catch(gel::Exception& e) {
@@ -73,7 +73,7 @@ protected:
 
 private:
 
-	void listFiles(elf::DebugLine *dl) {
+	void listFiles(DebugLine *dl) {
 		for(auto file: dl->files()) {
 
 			// collect addresses
@@ -116,7 +116,7 @@ private:
 		}
 	}
 
-	void listCode(elf::DebugLine *dl) {
+	void listCode(DebugLine *dl) {
 		for(auto cu: dl->units()) {
 			const auto& lines = cu->lines();
 			for(int i = 0; i < lines.count() - 1; i++)
