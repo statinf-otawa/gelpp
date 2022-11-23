@@ -200,8 +200,8 @@ public:
 	Segment *segment(int i) override;
 	Image *make(const Parameter& params) override;
 
-	cstring machine() const override;
-	cstring os() const override;
+	string machine() const override;
+	string os() const override;
 	int elfMachine() const override;
 	int elfOS() const override;
 	const SymbolTable& symbols() override;

@@ -137,8 +137,8 @@ public:
 	
 	virtual const SymbolTable& symbols() = 0;
 	virtual DebugLine *debugLines();
-	virtual cstring machine() const;
-	virtual cstring os() const;
+	virtual string machine() const;
+	virtual string os() const;
 	virtual int elfMachine() const;
 	virtual int elfOS() const;
 	

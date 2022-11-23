@@ -256,7 +256,7 @@ gel::Segment *File::segment(int i) {
 
 
 ///
-cstring File::machine() const {
+string File::machine() const {
 	// Look here https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
 	switch(elfMachine()) {
 	case 0x00:	return "no machine";
@@ -327,13 +327,13 @@ cstring File::machine() const {
 	case 0xF3:	return "riscv";
 	case 0xF7:	return "bpf";
 	case 0X101: return "wdc65c816";
-	default:	return gel::File::machine();
+	default:	return _ << "unknown (" << elfMachine() << ")";
 	}
 }
 
 
 ///
-cstring File::os() const {
+string File::os() const {
 	switch(elfOS()) {
 	case ELFOSABI_SYSV:			return "SysV";
 	case ELFOSABI_HPUX: 		return "HPUX";

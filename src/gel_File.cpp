@@ -311,7 +311,7 @@ DebugLine *File::debugLines() {
  * Get the name of the machine this binary is run on.
  * @return	Host machine name.
  */
-cstring File::machine() const {
+string File::machine() const {
 	return "unknown machine";
 }
 
@@ -320,7 +320,7 @@ cstring File::machine() const {
  * Get the name of the OS this binary is run on.
  * @return	Host OS name.
  */
-cstring File::os() const {
+string File::os() const {
 	return "unknown OS";
 }
 

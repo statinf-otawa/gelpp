@@ -520,7 +520,7 @@ File::~File() {
 }
 
 ///
-cstring File::machine() const {
+string File::machine() const {
 	switch(_coff_header.machine) {
 	case IMAGE_FILE_MACHINE_AM33:			return "Matsushita AM33";
 	case IMAGE_FILE_MACHINE_ARM:			return "ARM";
@@ -552,7 +552,7 @@ cstring File::machine() const {
 }
 
 ///
-cstring File::os() const {
+string File::os() const {
 	return "windows";
 }
 

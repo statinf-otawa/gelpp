@@ -53,6 +53,7 @@ File32::File32(Manager& manager, sys::Path path, io::RandomAccessStream *stream)
 		throw Exception("not an ELF file");
 	ASSERT(h->e_ident[EI_CLASS] == ELFCLASS32);
 	fix(h->e_type);
+	fix(h->e_machine);
 	fix(h->e_version);
 	fix(h->e_entry);
 	fix(h->e_shnum);

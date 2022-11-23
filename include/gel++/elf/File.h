@@ -156,8 +156,8 @@ public:
 	Image *make(const Parameter& params) override;
 	int count() override;
 	gel::Segment *segment(int i) override;
-	cstring machine() const override;
-	cstring os() const override;
+	string machine() const override;
+	string os() const override;
 	gel::DebugLine *debugLines() override;
 	
 	// Decoder override
