@@ -106,9 +106,9 @@ protected:
 class SymbolTable: public gel::SymbolTable {
 public:
 	~SymbolTable();
-	void record(t::uint8 *mem);
+	void record(elm::t::uint8 *mem);
 private:
-	List<t::uint8 *> mems;
+	List<elm::t::uint8 *> mems;
 };
 
 class DynEntry {
