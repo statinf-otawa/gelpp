@@ -513,7 +513,7 @@ SymbolTable::~SymbolTable() {
 
 
 ///
-void SymbolTable::record(t::uint8 *mem) {
+void SymbolTable::record(elm::t::uint8 *mem) {
 	mems.add(mem);
 }
 

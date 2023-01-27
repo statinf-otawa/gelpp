@@ -218,7 +218,8 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	} while(s);
 
 	// file names
-	while(readFile(c, sm, cu));
+	while(readFile(c, sm, cu))
+		;
 
 	// ensure at end of header
 	DEBUG("after header " << c.offset());
