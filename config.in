@@ -4,3 +4,6 @@
 #if @BIG_ENDIAN@ == 1
 #	define BIGENDIAN	1
 #endif
+#if @HAS_COFFI@ == 1
+#	define HAS_COFFI
+#endif

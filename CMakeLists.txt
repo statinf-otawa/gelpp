@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.0)
 project (GEL++)
 set(GEL_MAJOR	2)
 set(GEL_MINOR	0)
@@ -23,11 +23,6 @@ if(BIG_ENDIAN)
 	add_compile_definitions(ENDIANNESS_BIG=1)
 endif(BIG_ENDIAN)
 
-# build configuration file
-configure_file (
-  "${PROJECT_SOURCE_DIR}/config.in"
-  "${PROJECT_BINARY_DIR}/config.h"
-)
 
 # C++ 11 support
 if(CMAKE_VERSION LESS "3.1")
@@ -78,10 +73,25 @@ else()
 	message(FATAL_ERROR "cannot find elm headers")
 endif()
 
+# look for COFFI
+set(COFFI_PATH "${CMAKE_SOURCE_DIR}/COFFI/" CACHE PATH "Path to COFFI.")
+if(EXISTS "${COFFI_PATH}/coffi/coffi.hpp")
+	set(HAS_COFFI 1)
+	include_directories("${COFFI_PATH}")
+	message(STATUS "COFFI found at ${COFFI_PATH}.")
+else()
+	set(HAS_COFFI 0)
+	message(STATUS "COFFI not found at ${COFFI_PATH}.")
+endif()
 
 # compilation configuration
 include_directories("${CMAKE_SOURCE_DIR}/include")
 
+# build configuration file
+configure_file (
+  "${PROJECT_SOURCE_DIR}/config.in"
+  "${PROJECT_BINARY_DIR}/config.h"
+)
 
 # components
 add_subdirectory(src)

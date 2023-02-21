@@ -37,8 +37,56 @@ public:
 			.copyright("copyright (c) 2016, université de Toulouse")
 			.free_argument("<file path>")
 			.help()),
-		find(Value<address_t>::Make(*this).cmd("-f").description("find the section containing this address").argDescription("ADDRESS").def(0))
+		find(Value<address_t>::Make(*this).cmd("-f").description("find the section containing this address").argDescription("ADDRESS").def(0)),
+		elf(Switch::Make(*this).cmd("-e").cmd("--elf").description("use ELF sections"))
 	{ }
+
+	void processELF(sys::Path path) {
+		elf::File *f = gel::Manager::openELF(path);
+		Vector<elf::Section *>& ss = f->sections();
+
+		// find option
+		if(find) {
+				bool found = false;
+				for(int j = 1; j < ss.count(); j++) {
+					auto sect = ss[j];
+					if((sect->flags() & SHF_ALLOC) != 0 && sect->contains(*find)) {
+						found = true;
+						cout << "address " << word_fmt(*find) << " found in section " << ss[j]->name() << io::endl;
+						display_section(j, *ss[j]);
+					}
+				}
+				if(!found)
+					throw MessageException(_ << "ERROR: no section containing address " << word_fmt(*find) << "\n");
+			}
+
+		// display sections
+		else {
+			cout << "INDEX TYPE         FLAGS VADDR    SIZE     OFFSET   LINK  NAME\n";
+			for(int j = 0; j < ss.count(); j++)
+				display_section(j, *ss[j]);
+		}
+
+		delete f;
+	}
+
+	void processGeneric(sys::Path path) {
+		auto f = gel::Manager::open(path);
+		cout << "INDEX FLAGS VADDR   SIZE      NAME\n";
+			for(int i = 0; i < f->count(); i++) {
+				auto s = f->segment(i);
+				cout << io::fmt(i).width(5).right() << ' '
+				/*	<< io::fmt(get_type(sect.type())).width(12) << "  "*/
+					<< (s->isWritable() ? 'W' : '-')
+					<< (s->hasContent() ? 'A' : '-')
+					<< (s->isExecutable() ? 'X' : '-') << "  "
+					<< word_fmt(s->baseAddress()) << ' '
+					<< word_fmt(s->size()) << ' '
+					/*<< word_fmt(sect.offset()) << ' '
+					<< io::fmt(sect.link()).width(5).right() << ' '*/
+					<< s->name() << io::endl;
+		}
+	}
 
 	int run(int argc, char **argv) {
 		try {
@@ -53,36 +101,12 @@ public:
 
 			// process arguments
 			for(int i = 0; i < args.count(); i++) {
-
-				elf::File *f = gel::Manager::openELF(args[i]);
-				Vector<elf::Section *>& ss = f->sections();
-
-				// find option
-				if(find) {
-					bool found = false;
-					for(int j = 1; j < ss.count(); j++) {
-						auto sect = ss[j];
-						if((sect->flags() & SHF_ALLOC) != 0 && sect->contains(*find)) {
-							found = true;
-							cout << "address " << word_fmt(*find) << " found in section " << ss[j]->name() << io::endl;
-							display_section(j, *ss[j]);
-						}
-					}
-					if(!found)
-						cerr << "ERROR: no section containing address " << word_fmt(*find) << "\n";
-					return 0;
-				}
-
-				// display sections
-				else {
-					cout << "INDEX TYPE         FLAGS VADDR    SIZE     OFFSET   LINK  NAME\n";
-					for(int j = 0; j < ss.count(); j++)
-						display_section(j, *ss[j]);
-				}
-
-				delete f;
+				int r;
+				if(elf)
+					processELF(args[i]);
+				else
+					processGeneric(args[i]);
 			}
-
 		}
 		catch(gel::Exception& e) {
 			displayHelp();
@@ -144,45 +168,10 @@ private:
 
 	Vector<string> args;
 	Value<address_t> find;
+	Switch elf;
 };
 
 int main(int argc, char **argv) {
 	SectCommand cmd;
 	return cmd.run(argc, argv);
 }
-
-#if 0
-/**
- * Command entry point.
- */
-int main(int argc, char **argv) {
-	const char *path;
-	gel_file_t *file;
-	int opt, i = 0;
-	const char *find = 0;
-	
-	/* find the section if required */
-	if(find) {
-
-		/* convert address */
-		uint32_t addr;
-		addr = strtoul(find, 0, 16);
-
-		/* perform the search */
-		for(i = 0; i < file->sectnum; i++) {
-
-			/* get the section information */
-			gel_sect_info_t info;
-			gel_sect_t *sect = gel_getsectbyidx(file, i);
-			assert(sect);
-			if(gel_sect_infos(sect, &info) < 0) {
-				fprintf(stderr, "ERROR: %s\n", gel_strerror());
-				return 3;
-			}
-
-			/* found ? */
-			if(addr >= info.vaddr && addr < info.vaddr + info.size) {
-		return 1;
-	}
-}
-#endif

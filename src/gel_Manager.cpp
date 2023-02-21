@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "../config.h"
 #include <elm/compare.h>
 #include <elm/sys/System.h>
 #include <gel++.h>
@@ -25,6 +26,9 @@
 #include <gel++/elf/File64.h>
 #include <gel++/elf/common.h>
 #include <gel++/pecoff/File.h>
+#ifdef HAS_COFFI
+#	include <gel++/coffi/File.h>
+#endif
 
 namespace gel {
 
@@ -62,7 +66,13 @@ File *Manager::openFile(sys::Path path) {
 		// is it ELF?
 		if(elf::File::matches(magic))
 			return openELFFile(path, s);
-		
+
+		// is it COFF by COFFI?
+#		ifdef HAS_COFFI
+		else if(coffi::File::matches(magic))
+				return new coffi::File(*this, path);
+#		endif
+
 		// is it PE-COFF?
 		else if(pecoff::File::matches(magic))
 			return openPECOFFFile(path, s);

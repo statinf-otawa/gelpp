@@ -1,8 +1,8 @@
 set(CMAKE_INSTALL_RPATH "${ORIGIN}/..")
 set(CMAKE_MACOSX_RPATH true)
 
-# main library
-add_library(gel++ SHARED
+# prepare sources
+set(SOURCES
 	elf_ArchPlugin.cpp
 	elf_DebugLine.cpp
 	elf_File.cpp
@@ -14,6 +14,13 @@ add_library(gel++ SHARED
 	gel_Image.cpp
 	gel_Manager.cpp
 	pecoff_File.cpp)
+if(HAS_COFFI)
+	list(APPEND SOURCES "coffi_File.cpp")
+endif()
+
+# main library
+add_library(gel++ SHARED ${SOURCES})
+
 target_link_libraries("gel++" "${ELM_LIB}")
 set_target_properties(gel++ PROPERTIES
 	INSTALL_RPATH "\$ORIGIN")
