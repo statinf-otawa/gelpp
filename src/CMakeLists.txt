@@ -3,17 +3,18 @@ set(CMAKE_MACOSX_RPATH true)
 
 # prepare sources
 set(SOURCES
-	elf_ArchPlugin.cpp
-	elf_DebugLine.cpp
-	elf_File.cpp
-	elf_File32.cpp
-	elf_File64.cpp
-	elf_UnixBuilder.cpp
-	gel_DebugLine.cpp
-	gel_File.cpp
-	gel_Image.cpp
-	gel_Manager.cpp
-	pecoff_File.cpp)
+	"elf_ArchPlugin.cpp"
+	"elf_DebugLine.cpp"
+	"elf_File.cpp"
+	"elf_File32.cpp"
+	"elf_File64.cpp"
+	"elf_UnixBuilder.cpp"
+	"gel_DebugLine.cpp"
+	"gel_File.cpp"
+	"gel_Image.cpp"
+	"gel_LittleDecoder.cpp"
+	"gel_Manager.cpp"
+	"pecoff_File.cpp")
 if(HAS_COFFI)
 	list(APPEND SOURCES "coffi_File.cpp")
 endif()

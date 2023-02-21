@@ -34,6 +34,8 @@ class Section;
 class Segment;
 
 class File: public gel::File {
+	friend class Section;
+	friend class Segment;
 public:
 	File(Manager& manager, sys::Path path);
 	~File();

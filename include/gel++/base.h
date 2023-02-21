@@ -20,6 +20,8 @@
 #define INCLUDE_GEL___BASE_H_
 
 #include <elm/array.h>
+#include <elm/assert.h>
+#include <elm/io.h>
 #include <elm/types.h>
 #include "Exception.h"
 
