@@ -67,14 +67,15 @@ private:
 ///
 class Section: public gel::Section {
 public:
-	Section(COFFI::section *sect): _sect(sect) {}
+	Section(address_t base, COFFI::section *sect)
+		: _base(base), _sect(sect) {}
 
 	cstring name() override
 		{ return _sect->get_name().c_str(); }
 	address_t baseAddress() override
-		{ return _sect->get_virtual_address(); }
+		{ return _base + _sect->get_virtual_address(); }
 	address_t loadAddress() override
-		{ return _sect->get_physical_address(); }
+		{ return _base + _sect->get_physical_address(); }
 	size_t size() override
 		{ return _sect->get_virtual_size(); }
 	size_t alignment() override
@@ -96,6 +97,7 @@ public:
 
 	}
 private:
+	address_t _base;
 	COFFI::section *_sect;
 };
 
@@ -114,8 +116,22 @@ File::File(
 {
 	if(!_reader->load(path.toString().asSysString()))
 		throw Exception(_ << "cannot open " << path);
+	_base = _reader->get_win_header()->get_image_base();
 	for(int i = 0; i < _reader->get_header()->get_sections_count(); i++)
-		_sections.add(new Section(_reader->get_sections()[i]));
+		_sections.add(new Section(_base, _reader->get_sections()[i]));
+	/*cerr << "DEBUG: code "
+		 << io::hex(_reader->get_optional_header()->get_code_base())
+		 << ":" << io::hex(_reader->get_optional_header()->get_code_size())
+		 << io::endl;
+	cerr << "DEBUG: data "
+		 << io::hex(_reader->get_optional_header()->get_data_base())
+		 << ":" << io::hex(_reader->get_optional_header()->get_initialized_data_size())
+		 << ":" << io::hex(_reader->get_optional_header()->get_uninitialized_data_size())
+		 << io::endl;
+	cerr << "DEBUG: image "
+		 << io::hex(_reader->get_win_header()->get_image_base())
+		 << io::endl;*/
+
 }
 
 

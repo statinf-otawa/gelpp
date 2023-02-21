@@ -72,14 +72,14 @@ public:
 
 	void processGeneric(sys::Path path) {
 		auto f = gel::Manager::open(path);
-		cout << "INDEX FLAGS VADDR   SIZE     OFFSET    NAME\n";
+		cout << "INDEX FLAGS VADDR    SIZE     OFFSET    NAME\n";
 			for(int i = 0; i < f->countSections(); i++) {
 				auto s = f->section(i);
 				cout << io::fmt(i).width(5).right() << ' '
 				/*	<< io::fmt(get_type(sect.type())).width(12) << "  "*/
 					<< (s->isWritable() ? 'W' : '-')
 					<< (s->hasContent() ? 'A' : '-')
-					<< (s->isExecutable() ? 'X' : '-') << "  "
+					<< (s->isExecutable() ? 'X' : '-') << "   "
 					<< word_fmt(s->baseAddress()) << ' '
 					<< word_fmt(s->size()) << ' '
 					<< word_fmt(s->offset()) << ' '
