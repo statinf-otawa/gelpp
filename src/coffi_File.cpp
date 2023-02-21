@@ -63,6 +63,43 @@ private:
 	COFFI::section *_sect;
 };
 
+
+///
+class Section: public gel::Section {
+public:
+	Section(COFFI::section *sect): _sect(sect) {}
+
+	cstring name() override
+		{ return _sect->get_name().c_str(); }
+	address_t baseAddress() override
+		{ return _sect->get_virtual_address(); }
+	address_t loadAddress() override
+		{ return _sect->get_physical_address(); }
+	size_t size() override
+		{ return _sect->get_virtual_size(); }
+	size_t alignment() override
+		{ return _sect->get_alignment(); }
+	bool isExecutable() override
+		{ return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0; }
+	bool isWritable() override
+		{ return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0; }
+	bool hasContent() override
+		{ return (_sect->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0; }
+	size_t offset() override
+		{ return _sect->get_data_offset(); }
+	size_t fileSize() override
+		{ return _sect->get_data_size(); }
+	flags_t flags() override
+		{ return 0; }
+
+	Buffer buffer() override {
+
+	}
+private:
+	COFFI::section *_sect;
+};
+
+
 /**
  * @class File
  * File for the COFF support.
@@ -78,7 +115,7 @@ File::File(
 	if(!_reader->load(path.toString().asSysString()))
 		throw Exception(_ << "cannot open " << path);
 	for(int i = 0; i < _reader->get_header()->get_sections_count(); i++)
-		_segments.add(new Segment(_reader->get_sections()[i]));
+		_sections.add(new Section(_reader->get_sections()[i]));
 }
 
 
@@ -174,6 +211,16 @@ string File::machine() const {
 ///
 string File::os() const {
 	return "unknown";
+}
+
+///
+int File::countSections() {
+	return _sections.length();
+}
+
+///
+gel::Section *File::section(int i) {
+	return _sections[i];
 }
 
 }}	// gel::coffi
