@@ -4,6 +4,7 @@ set(GEL_MAJOR	2)
 set(GEL_MINOR	0)
 enable_testing()
 
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS "-Wall" )
 
 # OS dependencies

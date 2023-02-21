@@ -43,7 +43,7 @@ public:
 		return _base + _sect->get_physical_address();
 	}
 	size_t size() override {
-		return _sect->get_virtual_size();
+		return _sect->get_data_size(); // TODO ?? maybe multiply this by 2? it should be also get_virtual_size for PE Windows
 	}
 	size_t alignment() override {
 		return _sect->get_alignment();
@@ -79,7 +79,7 @@ public:
 	address_t loadAddress() override
 		{ return _base + _sect->get_physical_address(); }
 	size_t size() override
-		{ return _sect->get_virtual_size(); }
+		{ return _sect->get_data_size();  } // TODO ?? maybe multiply this by 2? it should be also get_virtual_size for PE Windows
 	size_t alignment() override
 		{ return _sect->get_alignment(); }
 	bool isExecutable() override
@@ -133,6 +133,9 @@ File::File(
 		case COFFI::COFFI_ARCHITECTURE_TI:
 			_base = _reader->get_optional_header()->get_code_base();
 			break;
+		case COFFI::COFFI_ARCHITECTURE_NONE:
+		default:
+			throw Exception(_ << "Unknown architecture");
 	}
 
 	for(int i = 0; i < _reader->get_header()->get_sections_count(); i++) {
@@ -168,7 +171,7 @@ File::~File() {
  * @return			True if it matches, false else.
  */
 bool File::matches(t::uint8 magic[4]) {
-	return magic[0] == 0x4D && magic[1] == 0x5A;
+	return true || magic[0] == 0x4D && magic[1] == 0x5A;
 }
 
 ///
@@ -185,6 +188,8 @@ bool File::isBigEndian(void) {
 
 ///
 address_type_t File::addressType(void) {
+	return address_32;
+	// TODO do this properly
 	auto m = _reader->get_header()->get_machine();
 	switch(m) {
 	case IMAGE_FILE_MACHINE_AMD64:
@@ -226,6 +231,9 @@ const SymbolTable& File::symbols() {
 
 ///
 string File::machine() const {
+	return "unknown"; // TODO do this clean
+	if(!_reader->get_header())
+		return "unknown";
 	auto m = _reader->get_header()->get_machine();
 	switch(m) {
 	case IMAGE_FILE_MACHINE_AM33:
