@@ -98,6 +98,6 @@ add_subdirectory(src)
 add_subdirectory(bin)
 
 # installation
-install(FILES "README" "COPYING.md" "AUTHORS" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/GEL++/")
+install(FILES "README.md" "COPYING.md" "AUTHORS" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/GEL++/")
 install(FILES "include/gel++.h" DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
 install(DIRECTORY "include/gel++" DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
