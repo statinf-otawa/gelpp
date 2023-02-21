@@ -74,7 +74,7 @@ else()
 endif()
 
 # look for COFFI
-set(COFFI_PATH "${CMAKE_SOURCE_DIR}/COFFI/" CACHE PATH "Path to COFFI.")
+set(COFFI_PATH "${CMAKE_SOURCE_DIR}/coffi/" CACHE PATH "Path to COFFI")
 if(EXISTS "${COFFI_PATH}/coffi/coffi.hpp")
 	set(HAS_COFFI 1)
 	include_directories("${COFFI_PATH}")

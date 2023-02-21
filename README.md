@@ -12,5 +12,5 @@ files. GEL++ provides an interface to COFF files through COFFI.
 
 To use it, clone its repository in the top-level of the source directory of GEL++.
 ```sh
-$ git clone https://github.com/serge1/COFFI.git
+$ git clone https://github.com/serge1/COFFI.git coffi
 ```
