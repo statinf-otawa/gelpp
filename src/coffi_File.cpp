@@ -121,7 +121,20 @@ File::File(
 {
 	if(!_reader->load(path.toString().asSysString()))
 		throw Exception(_ << "cannot open " << path);
-	_base = _reader->get_win_header()->get_image_base();
+
+	// get the image base 	
+	switch (_reader->get_architecture()) {
+		case COFFI::COFFI_ARCHITECTURE_PE:
+			if(! _reader->get_win_header())
+				throw Exception(_ << "No Windows header for " << path);
+			_base = _reader->get_win_header()->get_image_base();
+			break;
+		case COFFI::COFFI_ARCHITECTURE_CEVA:
+		case COFFI::COFFI_ARCHITECTURE_TI:
+			_base = _reader->get_optional_header()->get_code_base();
+			break;
+	}
+
 	for(int i = 0; i < _reader->get_header()->get_sections_count(); i++) {
 		auto s = _reader->get_sections()[i];
 		_sections.add(new Section(_base, s));
