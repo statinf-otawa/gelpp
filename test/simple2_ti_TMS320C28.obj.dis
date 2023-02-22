@@ -1,0 +1,35 @@
+
+Disassembly of simple2_ti_TMS320C28.obj:
+
+TEXT Section .text (Little Endian), 0x19 words at 0x00000000 
+00000000        _main:
+00000000   fe04   ADDB         SP, #4
+00000001   9242   MOV          AL, *-SP[2]
+00000002   5441   CMP          AL, *-SP[1]
+00000003   6303   SB           3, GEQ
+00000004   9241   MOV          AL, *-SP[1]
+00000005   6f02   SB           2, UNC
+00000006        $C$L1:
+00000006   9242   MOV          AL, *-SP[2]
+00000007        $C$L2:
+00000007   9643   MOV          *-SP[3], AL
+00000008        $C$L3:
+00000008   9243   MOV          AL, *-SP[3]
+00000009   9341   MOV          AH, *-SP[1]
+0000000a   00c0   FFC          XAR7, 0x000000
+0000000b   0000
+0000000c   5200   CMPB         AL, #0x0
+0000000d   6007   SB           7, NEQ
+0000000e   9243   MOV          AL, *-SP[3]
+0000000f   9342   MOV          AH, *-SP[2]
+00000010   00c0   FFC          XAR7, 0x000000
+00000011   0000
+00000012   5200   CMPB         AL, #0x0
+00000013   6103   SB           3, EQ
+00000014        $C$L4:
+00000014   0a43   INC          *-SP[3]
+00000015   6ff3   SB           -13, UNC
+00000016        $C$L5:
+00000016   9a00   MOVB         AL, #0x0
+00000017   fe84   SUBB         SP, #4
+00000018   0006   LRETR        
