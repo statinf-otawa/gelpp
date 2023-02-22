@@ -31,6 +31,24 @@ namespace gel { namespace coffi {
  */
 
 ///
+class Symbol: public gel::Symbol {
+public:
+	Symbol(File& file, type_t type, bind_t bind, COFFI::symbol& sym)
+		: _file(file), _type(type), _bind(bind), _sym(sym) {}
+	cstring name() override { return _sym.get_name().c_str(); }
+	t::uint64 value() override { return _sym.get_value(); }
+	t::uint64 size() override { return 0; }
+	type_t type() override { return _type; }
+	bind_t bind() override { return _bind; }
+private:
+	File& _file;
+	type_t _type;
+	bind_t _bind;
+	COFFI::symbol& _sym;
+};
+
+
+///
 class Segment: public gel::Segment {
 public:
 	Segment(File& file, COFFI::section *sect)
@@ -119,7 +137,7 @@ private:
 File::File(
 	Manager& manager,
 	sys::Path path
-): gel::File(manager, path), _reader(new COFFI::coffi)
+): gel::File(manager, path), _reader(new COFFI::coffi), _symtab(nullptr)
 {
 	if(!_reader->load(path.toString().asSysString()))
 		throw Exception(_ << "cannot open " << path);
@@ -162,6 +180,11 @@ File::File(
 ///
 File::~File() {
 	delete _reader;
+	if(_symtab != nullptr) {
+		for(auto sym: *_symtab)
+			delete sym;
+		delete _symtab;
+	}
 }
 
 /**
@@ -219,11 +242,30 @@ gel::Segment *File::segment(int i) {
 ///
 Image *File::make(const Parameter& params) {
 	// TODO
-	return nullptr;
 }
 
 ///
 const SymbolTable& File::symbols() {
+	if(_symtab == nullptr) {
+		_symtab = new SymbolTable;
+
+		// find text and data
+		auto _text = -1, _data = -1;
+		for(int i = 0; i < _reader->get_sections().size(); i++) {
+			auto name = _reader->get_sections()[i]->get_name();
+			if(name == ".text")
+				_text = i;
+			else if(name == ".data")
+				_data = i;
+		}
+
+		// build symbols
+		for(auto s: _reader->get_sections()) {
+			cerr << "DEBUG:" << s->get_name().c_str() << io::endl;
+			cerr << "DEBUG:" << s->value << io::endl;
+		}
+	}
+	return *_symtab;
 }
 
 ///

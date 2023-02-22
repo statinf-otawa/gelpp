@@ -32,10 +32,12 @@ using namespace elm;
 
 class Section;
 class Segment;
+class Symbol;
 
 class File: public gel::File {
 	friend class Section;
 	friend class Segment;
+	friend class Symbol;
 public:
 	File(Manager& manager, sys::Path path);
 	~File();
@@ -59,6 +61,7 @@ private:
 	address_t _base;
 	Vector<Section *> _sections;
 	Vector<Segment *> _segments;
+	SymbolTable *_symtab;
 };
 
 }}	// gel::coffi
