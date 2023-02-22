@@ -37,13 +37,13 @@ public:
 		return _sect->get_name().c_str();
 	}
 	address_t baseAddress() override {
-		return _base + _sect->get_virtual_address();
+		return _sect->get_virtual_address();
 	}
 	address_t loadAddress() override {
-		return _base + _sect->get_physical_address();
+		return _sect->get_physical_address();
 	}
 	size_t size() override {
-		return _sect->get_data_size(); // TODO ?? maybe multiply this by 2? it should be also get_virtual_size for PE Windows
+		return _sect->get_data_size();
 	}
 	size_t alignment() override {
 		return _sect->get_alignment();
@@ -57,9 +57,8 @@ public:
 	bool hasContent() override {
 		return (_sect->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0;
 	}
-	Buffer buffer() override {
 
-	}
+	Buffer buffer() override {}
 private:
 	address_t _base;
 	COFFI::section *_sect;
@@ -72,30 +71,37 @@ public:
 	Section(address_t base, COFFI::section *sect)
 		: _base(base), _sect(sect) {}
 
-	cstring name() override
-		{ return _sect->get_name().c_str(); }
-	address_t baseAddress() override
-		{ return _base + _sect->get_virtual_address(); }
-	address_t loadAddress() override
-		{ return _base + _sect->get_physical_address(); }
-	size_t size() override
-		{ return _sect->get_data_size();  } // TODO ?? maybe multiply this by 2? it should be also get_virtual_size for PE Windows
-	size_t alignment() override
-		{ return _sect->get_alignment(); }
-	bool isExecutable() override
-		{ return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0; }
-	bool isWritable() override
-		{ return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0; }
-	size_t offset() override
-		{ return _sect->get_data_offset(); }
-	size_t fileSize() override
-		{ return _sect->get_data_size(); }
-	flags_t flags() override
-		{ return 0; }
-
-	Buffer buffer() override {
-
+	cstring name() override {
+		return _sect->get_name().c_str();
 	}
+	address_t baseAddress() override {
+		return _sect->get_virtual_address();
+	}
+	address_t loadAddress() override {
+		return _sect->get_physical_address();
+	}
+	size_t size() override {
+		return _sect->get_data_size();
+	}
+	size_t alignment() override {
+		return _sect->get_alignment();
+	}
+	bool isExecutable() override {
+		return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0;
+	}
+	bool isWritable() override {
+		return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0;
+	}
+	size_t offset() override {
+		return _sect->get_data_offset();
+	}
+	size_t fileSize() override {
+		return _sect->get_data_size();
+	}
+	flags_t flags() override { return 0;
+	}
+
+	Buffer buffer() override {}
 
 	bool hasContent() override {
 		auto f = _sect->get_flags();
@@ -122,10 +128,10 @@ File::File(
 	if(!_reader->load(path.toString().asSysString()))
 		throw Exception(_ << "cannot open " << path);
 
-	// get the image base 	
+	// get the image base
 	switch (_reader->get_architecture()) {
 		case COFFI::COFFI_ARCHITECTURE_PE:
-			if(! _reader->get_win_header())
+		if(! _reader->get_win_header())
 				throw Exception(_ << "No Windows header for " << path);
 			_base = _reader->get_win_header()->get_image_base();
 			break;
@@ -141,6 +147,7 @@ File::File(
 	for(int i = 0; i < _reader->get_header()->get_sections_count(); i++) {
 		auto s = _reader->get_sections()[i];
 		_sections.add(new Section(_base, s));
+		// FIXME: is this thing below needed for COFF files?
 		if((s->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0)
 			_segments.add(new Segment(_base, s));
 	}
@@ -171,7 +178,8 @@ File::~File() {
  * @return			True if it matches, false else.
  */
 bool File::matches(t::uint8 magic[4]) {
-	return true || magic[0] == 0x4D && magic[1] == 0x5A;
+	// TI's magic number
+	magic[0] == 0x01 && magic[1] == 0x08;
 }
 
 ///
