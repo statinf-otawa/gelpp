@@ -131,12 +131,14 @@ File::File(
 	// get the image base
 	switch (_reader->get_architecture()) {
 		case COFFI::COFFI_ARCHITECTURE_PE:
-		if(! _reader->get_win_header())
+			if(! _reader->get_win_header())
 				throw Exception(_ << "No Windows header for " << path);
 			_base = _reader->get_win_header()->get_image_base();
 			break;
 		case COFFI::COFFI_ARCHITECTURE_CEVA:
 		case COFFI::COFFI_ARCHITECTURE_TI:
+			if(! _reader->get_optional_header())
+				throw Exception(_ << "No optional header for " << path << ", unsure how to proceed");
 			_base = _reader->get_optional_header()->get_code_base();
 			break;
 		case COFFI::COFFI_ARCHITECTURE_NONE:
