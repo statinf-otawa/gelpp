@@ -37,6 +37,30 @@ public:
 			.help())
 	{ }
 
+	void processELF(elf::File *f) {
+		for(int i = 0; i < f->sections().length(); i++) {
+			elf::Section *sect = f->sections()[i];
+			if(sect->type() == SHT_SYMTAB || sect->type() == SHT_DYNAMIC) {
+				cout << "SECTION " << sect->name() << io::endl;
+				cout << "st_value st_size  binding type    st_shndx         name\n";
+				for(auto s: f->symbols()) {
+					auto sym = static_cast<elf::Symbol *>(s);
+					cout <<	word_fmt(sym->value())						<< ' '
+							<< word_fmt(sym->size()) 						<< ' '
+							<< io::fmt(sym->size()).width(7)				<< ' '
+							<< io::fmt(sym->elfType()).width(7)			<< ' '
+							<< io::fmt(get_section_index(f, *sym)).width(16)	<< ' '
+							<< sym->name()										<< io::endl;
+				}
+			}
+		}
+	}
+
+	void processGen(File *file) {
+		for(auto sym: file->symbols())
+			cerr << sym->name() << io::endl;
+	}
+
 	int run(int argc, char **argv) {
 		try {
 			parse(argc, argv);
@@ -55,24 +79,14 @@ public:
 		// process each executable
 		for(int i = 0; i < args.count(); i++)
 			try {
-				elf::File *f = gel::Manager::openELF(args[i]);
-				for(int i = 0; i < f->sections().length(); i++) {
-					elf::Section *sect = f->sections()[i];
-					if(sect->type() == SHT_SYMTAB || sect->type() == SHT_DYNAMIC) {
-						cout << "SECTION " << sect->name() << io::endl;
-						cout << "st_value st_size  binding type    st_shndx         name\n";
-						for(auto s: f->symbols()) {
-							auto sym = static_cast<elf::Symbol *>(s);
-							cout <<	word_fmt(sym->value())						<< ' '
-								 << word_fmt(sym->size()) 						<< ' '
-								 << io::fmt(sym->size()).width(7)				<< ' '
-								 << io::fmt(sym->elfType()).width(7)			<< ' '
-								 << io::fmt(get_section_index(f, *sym)).width(16)	<< ' '
-								 << sym->name()										<< io::endl;
-						}
-					}
-				}
-				delete f;
+				//elf::File *f = gel::Manager::openELF(args[i]);
+				auto file = gel::Manager::open(args[i]);
+				auto elf = file->toELF();
+				if(elf != nullptr)
+					processELF(elf);
+				else
+					processGen(file);
+				delete file;
 			}
 			catch(gel::Exception& e) {
 				cerr << "ERROR: during opening of " << args[i] << ": " << e.message() << io::endl;

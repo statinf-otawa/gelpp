@@ -17,9 +17,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+
 #include <coffi/coffi.hpp>
 #include <coffi/coffi_types.hpp>
 #include <gel++/coffi/File.h>
+#include <gel++/LittleDecoder.h>
 
 namespace gel { namespace coffi {
 
@@ -29,10 +31,28 @@ namespace gel { namespace coffi {
  */
 
 ///
+class Symbol: public gel::Symbol {
+public:
+	Symbol(File& file, type_t type, bind_t bind, COFFI::symbol& sym)
+		: _file(file), _type(type), _bind(bind), _sym(sym) {}
+	cstring name() override { return _sym.get_name().c_str(); }
+	t::uint64 value() override { return _sym.get_value(); }
+	t::uint64 size() override { return 0; }
+	type_t type() override { return _type; }
+	bind_t bind() override { return _bind; }
+private:
+	File& _file;
+	type_t _type;
+	bind_t _bind;
+	COFFI::symbol& _sym;
+};
+
+
+///
 class Segment: public gel::Segment {
 public:
-	Segment(address_t base, COFFI::section *sect)
-		: /*_base(base),*/ _sect(sect) {}
+	Segment(File& file, COFFI::section *sect)
+		: _file(file), _sect(sect) {}
 	cstring name() override {
 		return _sect->get_name().c_str();
 	}
@@ -48,19 +68,20 @@ public:
 	size_t alignment() override {
 		return _sect->get_alignment();
 	}
-	bool isExecutable() override {
-		return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0;
+	bool isExecutable() override
+		{ return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0; }
+	bool isWritable() override
+		{ return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0; }
+	bool hasContent() override
+		{ return (_sect->get_flags() & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0; }
+	Buffer buffer() override {
+		return Buffer(
+			&LittleDecoder::single,
+			_sect->get_data(),
+			_sect->get_data_size());
 	}
-	bool isWritable() override {
-		return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0;
-	}
-	bool hasContent() override {
-		return (_sect->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0;
-	}
-
-	Buffer buffer() override {}
 private:
-	// address_t _base; // base is unused. maybe we need it for PE-Windows?
+	File& _file;
 	COFFI::section *_sect;
 };
 
@@ -68,47 +89,40 @@ private:
 ///
 class Section: public gel::Section {
 public:
-	Section(address_t base, COFFI::section *sect)
-		: /*_base(base),*/ _sect(sect) {}
+	Section(File& file, COFFI::section *sect)
+		: _file(file), _sect(sect) {}
 
-	cstring name() override {
-		return _sect->get_name().c_str();
-	}
-	address_t baseAddress() override {
-		return _sect->get_virtual_address();
-	}
-	address_t loadAddress() override {
-		return _sect->get_physical_address();
-	}
-	size_t size() override {
-		return _sect->get_data_size();
-	}
-	size_t alignment() override {
-		return _sect->get_alignment();
-	}
-	bool isExecutable() override {
-		return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0;
-	}
-	bool isWritable() override {
-		return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0;
-	}
-	size_t offset() override {
-		return _sect->get_data_offset();
-	}
-	size_t fileSize() override {
-		return _sect->get_data_size();
-	}
-	flags_t flags() override { return 0;
-	}
+	cstring name() override
+		{ return _sect->get_name().c_str(); }
+	address_t baseAddress() override
+		{ return _sect->get_virtual_address(); }
+	address_t loadAddress() override
+		{ return _sect->get_physical_address(); }
+	size_t size() override
+		{ return _sect->get_virtual_size(); }
+	size_t alignment() override
+		{ return _sect->get_alignment(); }
+	bool isExecutable() override
+		{ return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0; }
+	bool isWritable() override
+		{ return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0; }
+	bool hasContent() override
+		{ return (_sect->get_flags() & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0; }
+	size_t offset() override
+		{ return _sect->get_data_offset(); }
+	size_t fileSize() override
+		{ return _sect->get_data_size(); }
+	flags_t flags() override
+		{ return 0; }
 
-	Buffer buffer() override {}
-
-	bool hasContent() override {
-		auto f = _sect->get_flags();
-		return (f & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0;
+	Buffer buffer() override {
+		return Buffer(
+			&LittleDecoder::single,
+			_sect->get_data(),
+			_sect->get_data_size());
 	}
 private:
-	// address_t _base; // base is unused. maybe we need it for PE-Windows?
+	File& _file;
 	COFFI::section *_sect;
 };
 
@@ -123,7 +137,7 @@ private:
 File::File(
 	Manager& manager,
 	sys::Path path
-): gel::File(manager, path), _reader(new COFFI::coffi)
+): gel::File(manager, path), _reader(new COFFI::coffi), _symtab(nullptr)
 {
 	if(!_reader->load(path.toString().asSysString()))
 		throw Exception(_ << "cannot open " << path);
@@ -149,10 +163,10 @@ File::File(
 
 	for(int i = 0; i < _reader->get_header()->get_sections_count(); i++) {
 		auto s = _reader->get_sections()[i];
-		_sections.add(new Section(_base, s));
+		_sections.add(new Section(*this, s));
 		// FIXME: is this thing below needed for COFF files?
 		if((s->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0)
-			_segments.add(new Segment(_base, s));
+			_segments.add(new Segment(*this, s));
 	}
 	/*cerr << "DEBUG: code "
 		 << io::hex(_reader->get_optional_header()->get_code_base())
@@ -173,6 +187,11 @@ File::File(
 ///
 File::~File() {
 	delete _reader;
+	if(_symtab != nullptr) {
+		for(auto sym: *_symtab)
+			delete sym;
+		delete _symtab;
+	}
 }
 
 /**
@@ -235,11 +254,30 @@ gel::Segment *File::segment(int i) {
 ///
 Image *File::make(const Parameter& params) {
 	// TODO
-	return nullptr;
 }
 
 ///
 const SymbolTable& File::symbols() {
+	if(_symtab == nullptr) {
+		_symtab = new SymbolTable;
+
+		// find text and data
+		auto _text = -1, _data = -1;
+		for(int i = 0; i < _reader->get_sections().size(); i++) {
+			auto name = _reader->get_sections()[i]->get_name();
+			if(name == ".text")
+				_text = i;
+			else if(name == ".data")
+				_data = i;
+		}
+
+		// build symbols
+		for(auto s: _reader->get_sections()) {
+			cerr << "DEBUG:" << s->get_name().c_str() << io::endl;
+			cerr << "DEBUG:" << s->value << io::endl;
+		}
+	}
+	return *_symtab;
 }
 
 ///
@@ -281,5 +319,6 @@ int File::countSections() {
 gel::Section *File::section(int i) {
 	return _sections[i];
 }
+
 
 }}	// gel::coffi
