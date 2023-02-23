@@ -32,7 +32,7 @@ namespace gel { namespace coffi {
 class Segment: public gel::Segment {
 public:
 	Segment(address_t base, COFFI::section *sect)
-		: _base(base), _sect(sect) {}
+		: /*_base(base),*/ _sect(sect) {}
 	cstring name() override {
 		return _sect->get_name().c_str();
 	}
@@ -60,7 +60,7 @@ public:
 
 	Buffer buffer() override {}
 private:
-	address_t _base;
+	// address_t _base; // base is unused. maybe we need it for PE-Windows?
 	COFFI::section *_sect;
 };
 
@@ -69,7 +69,7 @@ private:
 class Section: public gel::Section {
 public:
 	Section(address_t base, COFFI::section *sect)
-		: _base(base), _sect(sect) {}
+		: /*_base(base),*/ _sect(sect) {}
 
 	cstring name() override {
 		return _sect->get_name().c_str();
@@ -108,7 +108,7 @@ public:
 		return (f & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0;
 	}
 private:
-	address_t _base;
+	// address_t _base; // base is unused. maybe we need it for PE-Windows?
 	COFFI::section *_sect;
 };
 
@@ -138,8 +138,9 @@ File::File(
 		case COFFI::COFFI_ARCHITECTURE_CEVA:
 		case COFFI::COFFI_ARCHITECTURE_TI:
 			if(! _reader->get_optional_header())
-				throw Exception(_ << "No optional header for " << path << ", unsure how to proceed");
-			_base = _reader->get_optional_header()->get_code_base();
+				_base = 0;
+			else
+				_base = _reader->get_optional_header()->get_code_base();
 			break;
 		case COFFI::COFFI_ARCHITECTURE_NONE:
 		default:
@@ -216,6 +217,8 @@ address_type_t File::addressType(void) {
 ///
 address_t File::entry(void) {
 	// TODO
+	if(!_reader->get_optional_header())
+		throw Exception(_ << "No optional header, unsure how to proceed");
 	return _reader->get_optional_header()->get_entry_point_address();
 }
 
