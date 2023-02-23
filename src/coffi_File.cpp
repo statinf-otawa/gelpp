@@ -178,8 +178,8 @@ File::~File() {
  * @return			True if it matches, false else.
  */
 bool File::matches(t::uint8 magic[4]) {
-	// TI's magic number
-	magic[0] == 0x01 && magic[1] == 0x08;
+	// COFF-TI's magic number is encoded on two bytes;
+	return (magic[0] == 0xc2 || magic[0] == 0xc1) && magic[1] == 0x00;
 }
 
 ///
