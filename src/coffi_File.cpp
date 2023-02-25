@@ -99,7 +99,7 @@ public:
 	address_t loadAddress() override
 		{ return _sect->get_physical_address(); }
 	size_t size() override
-		{ return _sect->get_virtual_size(); }
+		{ return _sect->get_data_size(); }
 	size_t alignment() override
 		{ return _sect->get_alignment(); }
 	bool isExecutable() override
@@ -274,7 +274,7 @@ const SymbolTable& File::symbols() {
 		// build symbols
 		for(auto s: _reader->get_sections()) {
 			cerr << "DEBUG:" << s->get_name().c_str() << io::endl;
-			cerr << "DEBUG:" << s->value << io::endl;
+			// cerr << "DEBUG:" << s->value << io::endl;
 		}
 	}
 	return *_symtab;
@@ -282,7 +282,7 @@ const SymbolTable& File::symbols() {
 
 ///
 string File::machine() const {
-	return "unknown"; // TODO do this clean
+	return "unknown"; // TODO implement this for COFF-TI support
 	if(!_reader->get_header())
 		return "unknown";
 	auto m = _reader->get_header()->get_machine();
