@@ -14,3 +14,5 @@ Makefile
 /bin/gel-line
 /gel++.kdev4
 /install_manifest.txt
+coffi/
+.vscode/*

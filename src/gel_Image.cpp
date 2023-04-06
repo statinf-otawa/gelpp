@@ -18,6 +18,7 @@
  */
 
 #include <gel++/Image.h>
+#include <iostream>
 
 namespace gel {
 
@@ -92,6 +93,7 @@ ImageSegment::ImageSegment(File *file, Segment *segment, address_t addr, cstring
 	if(segment->isExecutable())
 		_flags |= EXECUTABLE;
 	Buffer sbuf = segment->buffer();
+	ASSERT(sbuf.bytes());
 	_buf = Buffer(sbuf.decoder(), new t::uint8[segment->size()], segment->size());
 	size_t size = 0;
 	if(segment->hasContent()) {
@@ -465,6 +467,17 @@ Image *SimpleBuilder::build(void) {
 	Image *im = new Image(_prog);
 	for(int i = 0; i < _prog->count(); i++) {
 		Segment *seg = _prog->segment(i);
+		if(seg->size() == 0) // TODO should we build empty ImageSegments?
+		{
+			std::cout << "[gelpp/Image] WARNING: not including segment " << (const char*)seg->name() << " because of size 0." << "\n";
+			continue;
+		}
+		if(seg->buffer().bytes() == 0)
+		{
+			std::cout << "[gelpp/Image] WARNING: not including segment " << (const char*)seg->name() << " because of nullptr bytes." << "\n";
+			continue;
+		}
+		std::cout << "[gelpp/Image] Adding segment " << (const char*)seg->name() << "\n";
 		im->add(new ImageSegment(_prog, seg, seg->loadAddress(), seg->name()));
 	}
 	return im;
