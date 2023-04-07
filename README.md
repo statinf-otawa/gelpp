@@ -10,7 +10,14 @@ but its open interface is able to support other formats like COFF.
 [COFFI](https://github.com/serge1/COFFI) is library providing load for COFF
 files. GEL++ provides an interface to COFF files through COFFI.
 
-To use it, clone its repository in the top-level of the source directory of GEL++.
+To use it, pull the sumbodule:
+
+```sh
+$ git submodule --init
+```
+
+This is equivalent to a clone of COFFI in the top-level of the source directory of GEL++, as if you ran
+
 ```sh
 $ git clone https://github.com/serge1/COFFI.git coffi
 ```
