@@ -22,6 +22,7 @@
 #include <coffi/coffi_types.hpp>
 #include <gel++/coffi/File.h>
 #include <gel++/LittleDecoder.h>
+#include <gel++/Image.h>
 
 namespace gel { namespace coffi {
 
@@ -72,8 +73,13 @@ public:
 		{ return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0; }
 	bool isWritable() override
 		{ return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0; }
-	bool hasContent() override
-		{ return (_sect->get_flags() & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0; }
+	bool hasContent() override {
+            // we need more that checking the flag, sometimes we have a section that has 
+            // the size, the correct flag but no data, e.g. .stack
+            // Should we still check the flag?
+            //return (_sect->get_flags() & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0;
+            return _sect->get_data_size() && _sect->get_data(); 
+        }
 	Buffer buffer() override {
 		return Buffer(
 			&LittleDecoder::single,
@@ -141,7 +147,7 @@ File::File(
 {
 	if(!_reader->load(path.toString().asSysString()))
 		throw Exception(_ << "cannot open " << path);
-
+        
 	// get the image base
 	switch (_reader->get_architecture()) {
 		case COFFI::COFFI_ARCHITECTURE_PE:
@@ -161,8 +167,7 @@ File::File(
 			throw Exception(_ << "Unknown architecture");
 	}
 
-	for(int i = 0; i < _reader->get_header()->get_sections_count(); i++) {
-		auto s = _reader->get_sections()[i];
+	for (auto s : _reader->get_sections()) {
 		_sections.add(new Section(*this, s));
 		// FIXME: is this thing below needed for COFF files?
 		if((s->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0)
@@ -253,7 +258,8 @@ gel::Segment *File::segment(int i) {
 
 ///
 Image *File::make(const Parameter& params) {
-	// TODO
+	gel::SimpleBuilder builder(this, params);
+	return builder.build();
 }
 
 ///
