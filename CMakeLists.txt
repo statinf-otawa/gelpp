@@ -87,6 +87,7 @@ endif()
 
 # compilation configuration
 include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_BINARY_DIR}") # for config.h
 
 # build configuration file
 configure_file (

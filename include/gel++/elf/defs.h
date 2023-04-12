@@ -21,7 +21,7 @@
 
 #include <elm/types.h>
 #include "common.h"
-#include "../config.h"
+#include "config.h"
 
 namespace gel { namespace elf {
 
