@@ -92,9 +92,9 @@ public:
 		return _sect->get_alignment();
 	}
 	bool isExecutable() override
-		{ return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0; }
+		{ return (_sect->get_flags() & (IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_CNT_CODE)) != 0; }
 	bool isWritable() override
-		{ return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0; }
+		{ return true; }
 	bool hasContent() override
 		{ return (_sect->get_flags() & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0; }
 	Buffer buffer() override {
@@ -128,9 +128,9 @@ public:
 	size_t alignment() override
 		{ return _sect->get_alignment(); }
 	bool isExecutable() override
-		{ return (_sect->get_flags() & IMAGE_SCN_MEM_EXECUTE) != 0; }
+		{ return (_sect->get_flags() & (IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_CNT_CODE)) != 0; }
 	bool isWritable() override
-		{ return (_sect->get_flags() & IMAGE_SCN_MEM_WRITE) != 0; }
+		{ return true; }
 	bool hasContent() override
 		{ return (_sect->get_flags() & IMAGE_SCN_CNT_UNINITIALIZED_DATA) == 0; }
 	size_t offset() override
@@ -189,14 +189,26 @@ File::File(
 		default:
 			throw Exception(_ << "Unknown architecture");
 	}
+	//cerr << "DEBUG: base = " << io::hex(_base) << io::endl;
 
 	// for(int i = 0; i < _reader->get_header()->get_sections_count(); i++) {
 	for (auto sec : _reader->get_sections()) {
 		// COFFI::section* s = _reader->get_sections()[i];
 		_sections.add(new Section(*this, sec));
+		//cerr << "DEBUG: section " << sec->get_name().c_str() << ": " << io::hex(sec->get_flags()) << ": " << io::hex(sec->get_data_size()) << io::endl;
+
 		// FIXME: is this thing below needed for COFF files?
-		if((sec->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0)
+		//if((sec->get_flags() & IMAGE_SCN_MEM_DISCARDABLE) == 0) {
+		if((sec->get_flags() & (IMAGE_SCN_CNT_CODE|IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_CNT_UNINITIALIZED_DATA)) != 0
+		&& sec->get_data_size() != 0) {
 			_segments.add(new Segment(*this, sec));
+			auto s = _segments.top();
+			/*cerr << "DEBUG: segment " << s->name()
+				<< " (" << io::hex(sec->get_flags()) << ")"
+				 << " " << io::hex(s->baseAddress())
+				 << ":" << io::hex(s->size())
+				 << io::endl;*/
+		}
 		
 		// std::cout << "  " << I2X(sec->get_index(), 3) << " "
 		// 			<< DUMP_STR_FORMAT(9) << sec->get_name() << " \n";
@@ -408,6 +420,7 @@ const SymbolTable& File::symbols() {
 		for (auto sym = _reader->get_symbols()->begin(); sym != _reader->get_symbols()->end(); sym++) {
 			// std::cout << "\n[COFFDUMP]  " << I2X(sym->get_index(), 4) << " " << I2X(sym->get_value(), 8) << " " << I2X(sym->get_type(), 4) << " " << I2X(sym->get_storage_class(), 2) << "    " << sym->get_name() << "\n";
 
+			//cerr << "DEBUG: symbol " << sym->get_name().c_str() << " = " << io::hex(sym->get_value()) << io::endl;
 			uint16_t containing_section_index = sym->get_section_number(); // may be -1
 			COFFI::section* containing_section = containing_section_index < file_sections.size() ? file_sections[sym->get_section_number()] : nullptr;
 
@@ -427,11 +440,11 @@ const SymbolTable& File::symbols() {
 							// 	continue; // TODO: I think we should add more TEXT sections than just .text...
 							if(sym->get_type() == 0x0000) // label instead of function I think
 							{
-								std::cout << "[gelpp/COFFI] Adding LABEL symbol " << sym->get_name() << " from section \"" << containing_section->get_name() << "\" \n";
+								//std::cout << "[gelpp/COFFI] Adding LABEL symbol " << sym->get_name() << " from section \"" << containing_section->get_name() << "\" \n";
 								sym_type = Symbol::type_t::OTHER_TYPE; // I think OTHER_TYPE means label (in otawa-tms/tms.cpp:285)
 							}
 							else {
-								std::cout << "[gelpp/COFFI] Adding FUNCTION symbol " << sym->get_name() << " from section \"" << containing_section->get_name() << "\" \n";
+								//std::cout << "[gelpp/COFFI] Adding FUNCTION symbol " << sym->get_name() << " from section \"" << containing_section->get_name() << "\" \n";
 								sym_type = Symbol::type_t::FUNC; // is it always a function, or possibly a label?
 							}
 							break;
