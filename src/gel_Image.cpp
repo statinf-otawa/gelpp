@@ -469,15 +469,15 @@ Image *SimpleBuilder::build(void) {
 		Segment *seg = _prog->segment(i);
 		if(seg->size() == 0) // TODO should we build empty ImageSegments?
 		{
-			std::cout << "[gelpp/Image] WARNING: not including segment " << (const char*)seg->name() << " because of size 0." << "\n";
+			// std::cout << "[gelpp/Image] WARNING: not including segment " << (const char*)seg->name() << " because of size 0." << "\n";
 			continue;
 		}
 		if(seg->buffer().bytes() == 0)
 		{
-			std::cout << "[gelpp/Image] WARNING: not including segment " << (const char*)seg->name() << " because of nullptr bytes." << "\n";
+			// std::cout << "[gelpp/Image] WARNING: not including segment " << (const char*)seg->name() << " because of nullptr bytes." << "\n";
 			continue;
 		}
-		std::cout << "[gelpp/Image] Adding segment " << (const char*)seg->name() << "\n";
+		// std::cout << "[gelpp/Image] Adding segment " << (const char*)seg->name() << "\n";
 		im->add(new ImageSegment(_prog, seg, seg->loadAddress(), seg->name()));
 	}
 	return im;
