@@ -202,7 +202,7 @@ File::File(
 		if((sec->get_flags() & (IMAGE_SCN_CNT_CODE|IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_CNT_UNINITIALIZED_DATA)) != 0
 		&& sec->get_data_size() != 0) {
 			_segments.add(new Segment(*this, sec));
-			auto s = _segments.top();
+			//auto s = _segments.top();
 			/*cerr << "DEBUG: segment " << s->name()
 				<< " (" << io::hex(sec->get_flags()) << ")"
 				 << " " << io::hex(s->baseAddress())
@@ -412,61 +412,41 @@ const SymbolTable& File::symbols() {
 			{STYP_ALIGN_16384, "STYP_ALIGN_16384"},
 			{STYP_ALIGN_32768, "STYP_ALIGN_32768"},
 		};
-		uint32_t alignment_mask_ti = 0x00000F00;
+		t::uint32 alignment_mask_ti = 0x00000F00;
 		ASSERT(_reader->get_architecture() == COFFI::coffi_architecture_t::COFFI_ARCHITECTURE_TI && "non-TI architecture not yet supported");
 
 		// build symbols
 		// Note: should we add functions that are in TEXT sections that are not .text? So far we do, let's see if it causes issues
 		for (auto sym = _reader->get_symbols()->begin(); sym != _reader->get_symbols()->end(); sym++) {
 			// std::cout << "\n[COFFDUMP]  " << I2X(sym->get_index(), 4) << " " << I2X(sym->get_value(), 8) << " " << I2X(sym->get_type(), 4) << " " << I2X(sym->get_storage_class(), 2) << "    " << sym->get_name() << "\n";
+			//cerr << "DEBUG: symbol " << sym->get_name().c_str()
+			//	 << ", type = " << io::hex(sym->get_type())
+			//	 << ", storage = " << io::hex(sym->get_storage_class())
+			//	 << io::endl;
 
+			// get container seciton
 			//cerr << "DEBUG: symbol " << sym->get_name().c_str() << " = " << io::hex(sym->get_value()) << io::endl;
-			uint16_t containing_section_index = sym->get_section_number(); // may be -1
-			COFFI::section* containing_section = containing_section_index < file_sections.size() ? file_sections[sym->get_section_number()] : nullptr;
+			t::uint16 containing_section_index = sym->get_section_number(); // may be -1
+			COFFI::section* containing_section = containing_section_index < file_sections.size() ? file_sections[sym->get_section_number() - 1] : nullptr;
 
-			Symbol::type_t sym_type = Symbol::type_t::NO_TYPE; // should we use NO_TYPE or OTHER_TYPE? Looks like OTHER_TYPE is creating labels...
+			Symbol::type_t sym_type = Symbol::NO_TYPE; // should we use NO_TYPE or OTHER_TYPE? Looks like OTHER_TYPE is creating labels...
 			if(containing_section != nullptr) {
-				uint32_t flags = containing_section->get_flags();
-				for (auto section_flags : section_flags_ti) {
-					if ((section_flags.flag & alignment_mask_ti)) {
-						// ignoring alignment flag
-					}
-					else if ((flags & section_flags.flag) == section_flags.flag) {
-						// std::cout << "Detected section flag " << section_flags.descr << "\n";
-						if(section_flags.flag == STYP_DATA) //|| section_flags.flag == STYP_BSS || (section_flags.flag == STYP_COPY))
-							sym_type = Symbol::type_t::DATA;
-						else if(section_flags.flag == STYP_TEXT) {
-							// if(containing_section->get_name() != ".text" && containing_section->get_name() != "secureRamFuncs")
-							// 	continue; // TODO: I think we should add more TEXT sections than just .text...
-							if(sym->get_type() == 0x0000) // label instead of function I think
-							{
-								//std::cout << "[gelpp/COFFI] Adding LABEL symbol " << sym->get_name() << " from section \"" << containing_section->get_name() << "\" \n";
-								sym_type = Symbol::type_t::OTHER_TYPE; // I think OTHER_TYPE means label (in otawa-tms/tms.cpp:285)
-							}
-							else {
-								//std::cout << "[gelpp/COFFI] Adding FUNCTION symbol " << sym->get_name() << " from section \"" << containing_section->get_name() << "\" \n";
-								sym_type = Symbol::type_t::FUNC; // is it always a function, or possibly a label?
-							}
-							break;
-						}
-					}
+				auto flags = containing_section->get_flags();
+				if((flags & (STYP_DATA | STYP_BSS | STYP_COPY)) != 0)
+							sym_type = Symbol::DATA;
+				else if((flags == STYP_TEXT) != 0) {
+					if(sym->get_type() == 0x0000) // label instead of function I think
+						sym_type = Symbol::OTHER_TYPE; // I think OTHER_TYPE means label (in otawa-tms/tms.cpp:285)
+					else
+						sym_type = Symbol::FUNC; // is it always a function, or possibly a label?
 				}
 			}
-
-			// enum bind_t {
-			// 	NO_BIND = 0,
-			// 	OTHER_BIND = 1,
-			// 	LOCAL = 2,
-			// 	GLOBAL = 3,
-			// 	WEAK = 4
-			// };
 			Symbol::bind_t bind = Symbol::bind_t::GLOBAL; // TODO!
-			// TODO: very dirty alloc down below, fix this
-			// Symbol(File& file, type_t type, bind_t bind, COFFI::symbol& sym)
-			char *name_str = new char[256];
+			/*char *name_str = new char[256];
 			strcpy(name_str, sym->get_name().c_str());
-			elm::cstring name(name_str);
-			_symtab->put(name_str, new Symbol(*this, sym_type, bind, *sym));
+			elm::cstring name(name_str);*/
+			cstring name = sym->get_name().c_str();
+			_symtab->put(name, new Symbol(*this, sym_type, bind, *sym));
 
 			// do we need auxiliary symbols?
 			// for (auto a = sym->get_auxiliary_symbols().begin();
