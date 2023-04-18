@@ -426,16 +426,17 @@ const SymbolTable& File::symbols() {
 			//	 << io::endl;
 
 			// get container seciton
-			//cerr << "DEBUG: symbol " << sym->get_name().c_str() << " = " << io::hex(sym->get_value()) << io::endl;
+			// cerr << "[GELPP/coffi] DEBUG: symbol " << sym->get_name().c_str() << " = " << io::hex(sym->get_value()) << io::endl;
 			t::uint16 containing_section_index = sym->get_section_number(); // may be -1
 			COFFI::section* containing_section = containing_section_index < file_sections.size() ? file_sections[sym->get_section_number() - 1] : nullptr;
 
 			Symbol::type_t sym_type = Symbol::NO_TYPE; // should we use NO_TYPE or OTHER_TYPE? Looks like OTHER_TYPE is creating labels...
 			if(containing_section != nullptr) {
 				auto flags = containing_section->get_flags();
-				if((flags & (STYP_DATA | STYP_BSS | STYP_COPY)) != 0)
-							sym_type = Symbol::DATA;
-				else if((flags == STYP_TEXT) != 0) {
+				if((flags & (STYP_DATA | STYP_BSS | STYP_COPY)) != 0) {
+					sym_type = Symbol::DATA;
+				}
+				else if((flags & STYP_TEXT) != 0) {
 					if(sym->get_type() == 0x0000) // label instead of function I think
 						sym_type = Symbol::OTHER_TYPE; // I think OTHER_TYPE means label (in otawa-tms/tms.cpp:285)
 					else
@@ -443,9 +444,6 @@ const SymbolTable& File::symbols() {
 				}
 			}
 			Symbol::bind_t bind = Symbol::bind_t::GLOBAL; // TODO!
-			/*char *name_str = new char[256];
-			strcpy(name_str, sym->get_name().c_str());
-			elm::cstring name(name_str);*/
 
 			_symtab->put(sym->get_name().c_str(), new Symbol(*this, sym_type, bind, *sym));
 
