@@ -418,6 +418,7 @@ const SymbolTable& File::symbols() {
 		// build symbols
 		// Note: should we add functions that are in TEXT sections that are not .text? So far we do, let's see if it causes issues
 		for (auto sym = _reader->get_symbols()->begin(); sym != _reader->get_symbols()->end(); sym++) {
+
 			// std::cout << "\n[COFFDUMP]  " << I2X(sym->get_index(), 4) << " " << I2X(sym->get_value(), 8) << " " << I2X(sym->get_type(), 4) << " " << I2X(sym->get_storage_class(), 2) << "    " << sym->get_name() << "\n";
 			//cerr << "DEBUG: symbol " << sym->get_name().c_str()
 			//	 << ", type = " << io::hex(sym->get_type())
@@ -445,8 +446,8 @@ const SymbolTable& File::symbols() {
 			/*char *name_str = new char[256];
 			strcpy(name_str, sym->get_name().c_str());
 			elm::cstring name(name_str);*/
-			cstring name = sym->get_name().c_str();
-			_symtab->put(name, new Symbol(*this, sym_type, bind, *sym));
+
+			_symtab->put(sym->get_name().c_str(), new Symbol(*this, sym_type, bind, *sym));
 
 			// do we need auxiliary symbols?
 			// for (auto a = sym->get_auxiliary_symbols().begin();
