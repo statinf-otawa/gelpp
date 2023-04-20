@@ -50,12 +50,10 @@ namespace gel { namespace coffi {
 ///
 class Symbol: public gel::Symbol {
 public:
-	Symbol(File& file, type_t type, bind_t bind, COFFI::symbol& sym)
-		// : _file(file), _type(type), _bind(bind), _sym(sym) {}
-		: _file(file), _type(type), _bind(bind), _value(sym.get_value()) {
-			_name = std::string(sym.get_name().c_str());
+	Symbol(File& file, elm::string name, type_t type, bind_t bind, COFFI::symbol& sym)
+		: _file(file), _type(type), _bind(bind), _value(sym.get_value()), _name(name) {
 		}
-	cstring name() override { return _name.c_str(); }
+	cstring name() override { return _name.toCString(); }
 	t::uint64 value() override { return _value; }
 	// cstring name() override { return _sym.get_name().c_str(); }
 	// t::uint64 value() override { return _sym.get_value(); }
@@ -67,7 +65,7 @@ private:
 	type_t _type;
 	bind_t _bind;
 	// COFFI::symbol& _sym;
-	std::string _name; // TODO use elm data structures 
+	elm::string _name; // TODO use elm data structures
 	t::uint32 _value;
 };
 
@@ -426,7 +424,8 @@ const SymbolTable& File::symbols() {
 		for (auto sym = _reader->get_symbols()->begin(); sym != _reader->get_symbols()->end(); sym++) {
 
 			// std::cout << "\n[COFFDUMP]  " << I2X(sym->get_index(), 4) << " " << I2X(sym->get_value(), 8) << " " << I2X(sym->get_type(), 4) << " " << I2X(sym->get_storage_class(), 2) << "    " << sym->get_name() << "\n";
-			/*cerr << "DEBUG: symbol " << sym->get_name().c_str()
+			string name = sym->get_name().c_str();
+			/*cerr << "DEBUG: symbol " << name
 				 << ", type = " << io::hex(sym->get_type())
 				 << ", storage = " << io::hex(sym->get_storage_class())
 				 << io::endl;*/
@@ -437,9 +436,12 @@ const SymbolTable& File::symbols() {
 			COFFI::section* containing_section = containing_section_index < file_sections.size() ? file_sections[sym->get_section_number() - 1] : nullptr;
 
 			Symbol::type_t sym_type = Symbol::NO_TYPE; // should we use NO_TYPE or OTHER_TYPE? Looks like OTHER_TYPE is creating labels...
-			if(containing_section != nullptr) {
+			if(containing_section == nullptr) {
+				//cerr << "DEBUG:" << name << " does not belong to any section!" << io::endl;
+			}
+			else {
 				auto flags = containing_section->get_flags();
-				//cerr << "DEBUG: in " << containing_section->get_name().c_str() << ": " << io::hex(flags) << io::endl;
+				//cerr << "DEBUG: " << name << " in " << containing_section->get_name().c_str() << ": " << io::hex(flags) << io::endl;
 				if((flags & (STYP_DATA | STYP_BSS | STYP_COPY)) != 0) {
 					sym_type = Symbol::DATA;
 				}
@@ -453,7 +455,7 @@ const SymbolTable& File::symbols() {
 			}
 			Symbol::bind_t bind = Symbol::bind_t::GLOBAL; // TODO!
 
-			_symtab->put(sym->get_name().c_str(), new Symbol(*this, sym_type, bind, *sym));
+			_symtab->put(name.toCString(), new Symbol(*this, name, sym_type, bind, *sym));
 
 			// do we need auxiliary symbols?
 			// for (auto a = sym->get_auxiliary_symbols().begin();
