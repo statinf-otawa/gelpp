@@ -59,14 +59,25 @@ public:
 
 	// Section override
 	cstring name() override;
-	t::uint32 flags() const override;
+	t::uint32 flags() override;
 	int type() const override;
 	t::uint32 link() const override;
-	t::uint64 offset() const override;
+	t::uint64 offset() override;
 	address_t addr() const override;
-	size_t size() const override;
+	size_t size() override;
 	size_t entsize() const override;
 	void read(t::uint8 *buf) override;
+
+	// Segment overload
+	address_t baseAddress() override;
+	address_t loadAddress() override;
+	size_t alignment() override;
+	bool isExecutable() override;
+	bool isWritable() override;
+	bool hasContent() override;
+
+	// Section overload
+	size_t fileSize() override;
 
 protected:
 	t::uint8 *readBuf() override;

@@ -26,6 +26,7 @@ namespace COFFI {
 	class coffi;
 }	// COFFI
 
+
 namespace gel { namespace coffi {
 
 using namespace elm;
@@ -55,6 +56,7 @@ public:
 	string os() const override;
 	int countSections() override;
 	gel::Section *section(int i) override;
+	gel::DebugLine * debugLines() override;
 
 private:
 	COFFI::coffi *_reader;
@@ -62,6 +64,8 @@ private:
 	Vector<Section *> _sections;
 	Vector<Segment *> _segments;
 	SymbolTable *_symtab;
+	DebugLine *_debug;
+	bool _debug_init;
 };
 
 }}	// gel::coffi

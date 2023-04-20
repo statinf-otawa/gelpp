@@ -101,7 +101,6 @@ public:
 
 			// process arguments
 			for(int i = 0; i < args.count(); i++) {
-				int r;
 				if(elf)
 					processELF(args[i]);
 				else

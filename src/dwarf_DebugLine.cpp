@@ -19,9 +19,9 @@
 
 #include <elm/data/util.h>
 
-#include "../include/gel++/elf/DebugLine.h"
+#include <gel++/elf/DebugLine.h>
 
-namespace gel { namespace elf {
+namespace gel { namespace dwarf {
 
 //#define DO_DEBUG
 #define DEBUG_OUT(txt)	cerr << "DEBUG: " << txt << io::endl;
@@ -95,21 +95,42 @@ namespace gel { namespace elf {
 
 /**
  * Build source line debug information for the given ELF file.
- * @param efile
+ * @param efile		ELF file to get information frome.
  */
 DebugLine::DebugLine(elf::File *efile): gel::DebugLine(efile), is_64(false) {
 
 	// get the buffer
-	elf::Section *sect = efile->findSection(".debug_line");
+	auto sect = efile->findSection(".debug_line");
 	if(sect == nullptr)
 		return;
-	Cursor c(sect->content());
+	Cursor c(sect->buffer());
 
 	// decode the content
 	DEBUG("reading (size =" << c.size() << ")");
 	while(!c.ended())
 		readCU(c);
 }
+
+/**
+ * Build source line debug information for the given ELF file.
+ * @param file		ELF file to get information frome.
+ * @param buf		Buffer to
+ */
+DebugLine::DebugLine(gel::File *file, Buffer buf): gel::DebugLine(file), is_64(false) {
+	Cursor c(buf);
+	DEBUG("reading (size =" << c.size() << ")");
+	while(!c.ended())
+		readCU(c);
+}
+
+
+/**
+ * Build source line information from a buffer.
+ */
+/*DebugLine::DebugLine(Buffer& buf): gel::DebugLine(efile), is_64(false) {
+
+}*/
+
 
 /**
  * @fn const HashMap<sys::Path, File *>& DebugLine::files() const;
@@ -155,7 +176,6 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 	// skip version
 	t::uint16 version;
 	error_if(!c.read(version));
-	static_cast<elf::File&>(prog).fix(version);
 	DEBUG("version = " << version);
 	if(version > 4)
 		throw gel::Exception(_ << "DWARF version > 4 (" << version << ")");
@@ -279,7 +299,6 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 			case DW_LNS_fixed_advance_pc: {
 					t::uint16 o;
 					error_if(!c.read(o));
-					static_cast<elf::File&>(prog).fix(o);
 					sm.address += o;
 					sm.op_index = 0;
 				}
@@ -389,13 +408,11 @@ size_t DebugLine::readHeaderLength(Cursor& c) {
 	if(!is_64) {
 		t::uint32 l;
 		c.read(l);
-		static_cast<elf::File&>(prog).fix(l);
 		return l;
 	}
 	else {
 		t::uint64 l;
 		c.read(l);
-		static_cast<elf::File&>(prog).fix(l);
 		return l;
 	}
 }
@@ -404,14 +421,12 @@ size_t DebugLine::readUnitLength(Cursor& c) {
 	t::uint32 l;
 	error_if(!c.read(l));
 	if(l < 0xffffff00) {
-		static_cast<elf::File&>(prog).fix(l);
 		is_64 = false;
 		return l;
 	}
 	t::uint64 ll;
 	error_if(!c.read(ll));
 	is_64 = true;
-	static_cast<elf::File&>(prog).fix(ll);
 	return ll;
 }
 
@@ -445,17 +460,15 @@ address_t DebugLine::readAddress(Cursor& c) {
 	if(!is_64) {
 		t::uint32 a;
 		error_if(!c.read(a));
-		static_cast<elf::File&>(prog).fix(a);
 		return a;
 	}
 	else {
 		t::uint64 a;
 		error_if(!c.read(a));
-		static_cast<elf::File&>(prog).fix(a);
 		return a;
 	}
 }
 
-} }	// gel::elf
+} }	// gel::dwarf
 
 

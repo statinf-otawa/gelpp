@@ -29,7 +29,7 @@
 
 namespace gel { namespace elf {
 
-class DebugLine;
+//class DebugLine;
 	
 class ProgramHeader {
 public:
@@ -58,24 +58,23 @@ private:
 };
 
 
-class Section {
+class Section: public gel::Section {
 public:
-	Section(void);
+	Section();
 	Section(elf::File *file);
-	virtual ~Section(void);
-	Buffer content(void);
+	virtual ~Section();
+	Buffer content();
 	inline bool contains(address_t a)
 		{ return ((flags() & SHF_ALLOC) != 0) && addr() <= a && a < addr() + size(); }
 
-	virtual cstring name() = 0;
-	virtual t::uint32 flags() const = 0;
 	virtual int type() const = 0;
 	virtual t::uint32 link() const = 0;
-	virtual t::uint64 offset() const = 0;
 	virtual address_t addr() const = 0;
-	virtual size_t size() const = 0;
 	virtual size_t entsize() const = 0;
 	virtual void read(t::uint8 *buf) = 0;
+
+	// Segment overload
+	Buffer buffer() override;
 
 protected:
 	virtual t::uint8 *readBuf() = 0;
@@ -137,7 +136,6 @@ public:
 	Vector<Section *>& sections(void);
 	inline Section *sectionAt(int i) const { return sects[i]; }
 	inline int sectionCount(void) const { return sects.count(); }
-	Section *findSection(cstring name);
 
 	typedef Vector<ProgramHeader *>::Iter ProgIter;
 	Vector<ProgramHeader *>& programHeaders(void);
@@ -159,7 +157,10 @@ public:
 	string machine() const override;
 	string os() const override;
 	gel::DebugLine *debugLines() override;
-	
+	int countSections() override;
+	gel::Section *findSection(cstring name) override;
+	Section *section(int i) override;
+
 	// Decoder override
 	void fix(t::uint16& i) override;
 	void fix(t::int16& i) override;

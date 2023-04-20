@@ -362,8 +362,15 @@ string File::os() const {
 ///
 gel::DebugLine *File::debugLines() {
 	if(debug == nullptr)
-		debug = new DebugLine(this);
+		debug = new dwarf::DebugLine(this);
 	return debug;
+}
+
+
+///
+int File::countSections() {
+	initSections();
+	return sectionCount();
 }
 
 
@@ -389,17 +396,22 @@ Vector<Section *>& File::sections(void) {
 }
 
 
-/**
- * Find a section by its name.
- * @param name	Name of the looked section.
- * @return		Found section or null pointer.
- */
-Section *File::findSection(cstring name) {
+///
+gel::Section *File::findSection(cstring name) {
+	initSections();
 	for(auto s: sections())
 		if(s->name() == name)
 			return s;
 	return nullptr;
 }
+
+
+///
+Section *File::section(int i) {
+	initSections();
+	return sectionAt(i);
+}
+
 
 
 /**
@@ -431,6 +443,13 @@ Buffer Section::content() {
 		buf = readBuf();
 	return Buffer(_file, buf, size());
 }
+
+
+///
+Buffer Section::buffer() {
+	return content();
+}
+
 
 
 /**

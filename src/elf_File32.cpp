@@ -314,6 +314,42 @@ void Section32::read(t::uint8 *buf) {
 	readAt(_info->sh_offset, buf, _info->sh_size);
 }
 
+///
+address_t Section32::baseAddress() {
+	return _info->sh_addr;
+}
+
+///
+address_t Section32::loadAddress() {
+	return 0;
+}
+
+///
+size_t Section32::alignment() {
+	return _info->sh_addralign;
+}
+
+///
+bool Section32::isExecutable() {
+	return (_info->sh_flags & SHF_EXECINSTR) != 0;
+}
+
+///
+bool Section32::isWritable() {
+	return (_info->sh_flags & SHF_WRITE) != 0;
+}
+
+///
+bool Section32::hasContent() {
+	return _info->sh_size != 0;
+}
+
+///
+size_t Section32::fileSize() {
+	return _info->sh_size;
+}
+
+
 
 /**
  * @fn const Elf32_Shdr& Section::info(void);
@@ -321,7 +357,7 @@ void Section32::read(t::uint8 *buf) {
  */
 
 ///
-t::uint32 Section32::flags() const {
+t::uint32 Section32::flags() {
 	return _info->sh_flags;
 }
 
@@ -336,7 +372,7 @@ t::uint32 Section32::link() const {
 }
 
 ///
-t::uint64 Section32::offset() const {
+t::uint64 Section32::offset() {
 	return _info->sh_offset;
 }
 
@@ -346,7 +382,7 @@ address_t Section32::addr() const {
 }
 
 ///
-size_t Section32::size() const {
+size_t Section32::size() {
 	return _info->sh_size;
 }
 

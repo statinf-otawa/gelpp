@@ -316,6 +316,41 @@ void Section64::read(t::uint8 *buf) {
 	readAt(_info->sh_offset, buf, _info->sh_size);
 }
 
+///
+address_t Section64::baseAddress() {
+	return _info->sh_addr;
+}
+
+///
+address_t Section64::loadAddress() {
+	return 0;
+}
+
+///
+size_t Section64::alignment() {
+	return _info->sh_addralign;
+}
+
+///
+bool Section64::isExecutable() {
+	return (_info->sh_flags & SHF_EXECINSTR) != 0;
+}
+
+///
+bool Section64::isWritable() {
+	return (_info->sh_flags & SHF_WRITE) != 0;
+}
+
+///
+bool Section64::hasContent() {
+	return _info->sh_size != 0;
+}
+
+///
+size_t Section64::fileSize() {
+	return _info->sh_size;
+}
+
 
 /**
  * @fn const Elf32_Shdr& Section::info(void);
@@ -323,7 +358,7 @@ void Section64::read(t::uint8 *buf) {
  */
 
 ///
-t::uint32 Section64::flags() const {
+t::uint32 Section64::flags() {
 	return _info->sh_flags;
 }
 
@@ -338,7 +373,7 @@ t::uint32 Section64::link() const {
 }
 
 ///
-t::uint64 Section64::offset() const {
+t::uint64 Section64::offset() {
 	return _info->sh_offset;
 }
 
@@ -348,7 +383,7 @@ address_t Section64::addr() const {
 }
 
 ///
-size_t Section64::size() const {
+size_t Section64::size() {
 	return _info->sh_size;
 }
 

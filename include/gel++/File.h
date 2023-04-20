@@ -134,6 +134,7 @@ public:
 
 	virtual int countSections();
 	virtual Section *section(int i);
+	virtual Section *findSection(cstring name);
 	
 	virtual const SymbolTable& symbols() = 0;
 	virtual DebugLine *debugLines();

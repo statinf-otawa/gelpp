@@ -297,6 +297,22 @@ Section *File::section(int i) {
 
 
 /**
+ * Look for a section with the given name.
+ * @param name	Name of the looked section.
+ * @return		Found section or null.
+ */
+Section *File::findSection(cstring name) {
+	int n = countSections();
+	for(int i = 0; i < n; i++) {
+		auto s = section(i);
+		if(s->name() == name)
+			return s;
+	}
+	return nullptr;
+}
+
+
+/**
  * If available, returns debugging information about the map
  * between the code and the source lines. Notice that the ownership of then
  * returned object is still the GEL file (it cannot be deleted).
