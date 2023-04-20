@@ -426,10 +426,10 @@ const SymbolTable& File::symbols() {
 		for (auto sym = _reader->get_symbols()->begin(); sym != _reader->get_symbols()->end(); sym++) {
 
 			// std::cout << "\n[COFFDUMP]  " << I2X(sym->get_index(), 4) << " " << I2X(sym->get_value(), 8) << " " << I2X(sym->get_type(), 4) << " " << I2X(sym->get_storage_class(), 2) << "    " << sym->get_name() << "\n";
-			cerr << "DEBUG: symbol " << sym->get_name().c_str()
+			/*cerr << "DEBUG: symbol " << sym->get_name().c_str()
 				 << ", type = " << io::hex(sym->get_type())
 				 << ", storage = " << io::hex(sym->get_storage_class())
-				 << io::endl;
+				 << io::endl;*/
 
 			// get container seciton
 			// cerr << "[GELPP/coffi] DEBUG: symbol " << sym->get_name().c_str() << " = " << io::hex(sym->get_value()) << io::endl;
@@ -439,12 +439,12 @@ const SymbolTable& File::symbols() {
 			Symbol::type_t sym_type = Symbol::NO_TYPE; // should we use NO_TYPE or OTHER_TYPE? Looks like OTHER_TYPE is creating labels...
 			if(containing_section != nullptr) {
 				auto flags = containing_section->get_flags();
-				cerr << "DEBUG: in " << containing_section->get_name().c_str() << ": " << io::hex(flags) << io::endl;
+				//cerr << "DEBUG: in " << containing_section->get_name().c_str() << ": " << io::hex(flags) << io::endl;
 				if((flags & (STYP_DATA | STYP_BSS | STYP_COPY)) != 0) {
 					sym_type = Symbol::DATA;
 				}
 				else if((flags & STYP_TEXT) != 0) {
-					cerr << "DEBUG: in text" << io::endl;
+					//cerr << "DEBUG: in text" << io::endl;
 					if(sym->get_type() == 0x0000) // label instead of function I think
 						sym_type = Symbol::OTHER_TYPE; // I think OTHER_TYPE means label (in otawa-tms/tms.cpp:285)
 					else
