@@ -34,7 +34,8 @@ public:
 			.description("Display symbols of an ELF exceutable.")
 			.copyright("Copyright (c) 2016, université de Toulouse")
 			.free_argument("<file path>")
-			.help())
+			.help()),
+		only_functions(option::SwitchOption::Make(this).cmd("-F").cmd("--only-functions").description("only display function symbols"))
 	{ }
 
 	void processELF(elf::File *f) {
@@ -58,7 +59,8 @@ public:
 
 	void processGen(File *file) {
 		for(auto sym: file->symbols())
-			cerr << sym->name() << io::endl;
+			if(!only_functions || sym->type() == Symbol::FUNC)
+				cerr << sym->name() << io::endl;
 	}
 
 	int run(int argc, char **argv) {
@@ -154,6 +156,7 @@ private:
 	}
 
 	Vector<string> args;
+	option::SwitchOption only_functions;
 };
 
 int main(int argc, char **argv) {
