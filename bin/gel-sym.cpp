@@ -60,7 +60,7 @@ public:
 	void processGen(File *file) {
 		for(auto sym: file->symbols())
 			if(!only_functions || sym->type() == Symbol::FUNC)
-				cerr << sym->name() << io::endl;
+				cout << sym->name() << io::endl;
 	}
 
 	int run(int argc, char **argv) {
