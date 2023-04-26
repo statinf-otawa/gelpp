@@ -78,7 +78,8 @@ public:
 		NO_TYPE = 0,
 		OTHER_TYPE = 1,
 		FUNC = 2,
-		DATA = 3
+		DATA = 3,
+		LABEL = 4,
 	};
 
 	enum bind_t {

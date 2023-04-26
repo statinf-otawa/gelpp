@@ -447,10 +447,13 @@ const SymbolTable& File::symbols() {
 				}
 				else if((flags & STYP_TEXT) != 0) {
 					//cerr << "DEBUG: in text" << io::endl;
-					if(sym->get_type() == 0x0000) // label instead of function I think
+					if(sym->get_type() == 0x0000 /* || (sym->get_storage_class() & 0x4)*/) // label instead of function I think
 						sym_type = Symbol::OTHER_TYPE; // I think OTHER_TYPE means label (in otawa-tms/tms.cpp:285)
-					else
+					else if(sym->get_storage_class() & 0x4) {
+						sym_type = Symbol::LABEL;
+					} else {
 						sym_type = Symbol::FUNC; // is it always a function, or possibly a label?
+					}
 				}
 			}
 			Symbol::bind_t bind = Symbol::bind_t::GLOBAL; // TODO!
