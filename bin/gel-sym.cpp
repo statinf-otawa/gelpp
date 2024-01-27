@@ -35,17 +35,24 @@ public:
 			.copyright("Copyright (c) 2016, université de Toulouse")
 			.free_argument("<file path>")
 			.help()),
-		only_functions(option::SwitchOption::Make(this).cmd("-F").cmd("--only-functions").description("only display function symbols"))
+		only_functions(option::SwitchOption::Make(this).cmd("-F").cmd("--only-functions").description("only display function symbols (excludes zero-size syms)"))
 	{ }
 
 	void processELF(elf::File *f) {
 		for(int i = 0; i < f->sections().length(); i++) {
 			elf::Section *sect = f->sections()[i];
 			if(sect->type() == SHT_SYMTAB || sect->type() == SHT_DYNAMIC) {
-				cout << "SECTION " << sect->name() << io::endl;
-				cout << "st_value st_size  binding type    st_shndx         name\n";
+				if(!only_functions) {
+					cout << "SECTION " << sect->name() << io::endl;
+					cout << "st_value st_size  binding type    st_shndx         name\n";
+				}
 				for(auto s: f->symbols()) {
 					auto sym = static_cast<elf::Symbol *>(s);
+					if(only_functions) {
+						if(sym->type() == Symbol::FUNC && sym->size() > 0)
+							cout << sym->name() << " " << io::endl;
+						continue;
+					}
 					cout <<	word_fmt(sym->value())						<< ' '
 							<< word_fmt(sym->size()) 						<< ' '
 							<< io::fmt(sym->size()).width(7)				<< ' '
