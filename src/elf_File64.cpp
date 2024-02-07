@@ -221,7 +221,7 @@ public:
 	t::uint64 size()	override { return _info->st_size; }
 
 	type_t type() override {
-		switch(ELF32_ST_TYPE(_info->st_info)) {
+		switch(ELF64_ST_TYPE(_info->st_info)) {
 		case STT_OBJECT:	return DATA;
 		case STT_FUNC:		return FUNC;
 		default:			return OTHER_TYPE;
@@ -229,7 +229,7 @@ public:
 	}
 
 	bind_t bind() override {
-		switch(ELF32_ST_BIND(_info->st_info)) {
+		switch(ELF64_ST_BIND(_info->st_info)) {
 		case STB_LOCAL:		return LOCAL;
 		case STB_GLOBAL:	return GLOBAL;
 		case STB_WEAK:		return WEAK;

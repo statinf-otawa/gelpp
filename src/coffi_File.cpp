@@ -18,6 +18,7 @@
  */
 
 
+#include <cstdint>
 #include <coffi/coffi.hpp>
 #include <coffi/coffi_types.hpp>
 #include <gel++/coffi/File.h>

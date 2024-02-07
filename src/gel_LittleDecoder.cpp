@@ -19,7 +19,7 @@
 
 #include <elm/types.h>
 #include <gel++/LittleDecoder.h>
-#include "../config.h"
+#include "config.h"
 
 using namespace elm;
 
