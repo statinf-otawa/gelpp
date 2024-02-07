@@ -20,7 +20,7 @@
 #define GEL_ELF_DEFS64_H
 
 #include <elm/types.h>
-#include "../config.h"
+#include "config.h"
 #include "common.h"
 
 namespace gel { namespace elf {
