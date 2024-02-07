@@ -86,7 +86,7 @@ else()
 endif()
 
 # compilation configuration
-include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}/include" ${CMAKE_BINARY_DIR})
 
 # build configuration file
 configure_file (
