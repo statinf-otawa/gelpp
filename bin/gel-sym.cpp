@@ -21,6 +21,9 @@
 #include <gel++.h>
 #include <gel++/elf/File.h>
 
+#include <stdlib.h>
+#include <cxxabi.h>
+
 using namespace elm;
 using namespace elm::option;
 using namespace gel;
@@ -50,7 +53,7 @@ public:
 					auto sym = static_cast<elf::Symbol *>(s);
 					if(only_functions) {
 						if(sym->type() == Symbol::FUNC && sym->size() > 0)
-							cout << sym->name() << " " << io::endl;
+							cout << demangle(sym->name()) << " " << io::endl;
 						continue;
 					}
 					cout <<	word_fmt(sym->value())						<< ' '
@@ -63,6 +66,19 @@ public:
 			}
 		}
 	}
+
+	string demangle(const string & str) {
+        int status;
+        string demangled = str;
+        char *realname = abi::__cxa_demangle(str.toCString(), 0, 0, &status);
+        if(status == 0) {
+          demangled = realname;
+        }
+        if(realname != NULL)
+          free(realname);
+
+        return demangled;
+    }
 
 	void processGen(File *file) {
 		for(auto sym: file->symbols())
