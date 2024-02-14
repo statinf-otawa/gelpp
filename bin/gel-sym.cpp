@@ -60,8 +60,8 @@ public:
 							<< word_fmt(sym->size()) 						<< ' '
 							<< io::fmt(sym->size()).width(7)				<< ' '
 							<< io::fmt(sym->elfType()).width(7)			<< ' '
-							<< io::fmt(get_section_index(f, *sym)).width(16)	<< ' '
-							<< sym->name()										<< io::endl;
+							<< io::fmt(get_section_index(f, *sym)).width(16) << ' '
+							<< demangle(sym->name())                         << io::endl;
 				}
 			}
 		}
