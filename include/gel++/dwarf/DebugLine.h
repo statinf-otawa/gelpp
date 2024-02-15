@@ -37,6 +37,7 @@ public:
 	class StateMachine {
 	public:
 		inline StateMachine() { include_directories.add("."); }
+		t::uint16 version;
 		address_t address = 0;
 		t::uint32
 			op_index = 0,
@@ -58,7 +59,13 @@ public:
 		t::uint8
 			minimum_instruction_length = 0,
 			maximum_operations_per_instruction = 0;
-		Vector<cstring> include_directories;
+		t::uint8
+			address_size = 0,
+			segment_selector_size = 0,
+			directory_entry_format_count = 0,
+			filename_entry_format_count = 0;
+		
+		Vector<cstring> include_directories, files;
 		// initialize from program header 
 		bool basic_block = false;		// DWARF-5? (TODO)
 		bool prologue_end = false;		// DWARF-5 (TODO)
@@ -75,7 +82,8 @@ private:
 	void advancePC(StateMachine& sm, CompilationUnit *cu, t::uint64 adv);
 	void advanceLine(StateMachine& sm, t::int64 adv);
 	void recordLine(StateMachine& sm, CompilationUnit *cu);
-	bool readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu);
+	void readDir(Cursor &c, StateMachine &sm);
+	void readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu);
 	size_t readHeaderLength(Cursor& c);
 	size_t readUnitLength(Cursor& c);
 	t::int64 readLEB128S(Cursor& c);
@@ -85,6 +93,8 @@ private:
 	address_t readAddress(Cursor& c);
 
 	bool is_64;
+	Cursor str_sect_cursor;
+	Cursor line_str_sect_cursor;
 };
 
 } }	// gel::dwarf

@@ -21,9 +21,11 @@
 
 #include <gel++/elf/DebugLine.h>
 
+#include <cstdlib>
+
 namespace gel { namespace dwarf {
 
-//#define DO_DEBUG
+#define DO_DEBUG
 #define DEBUG_OUT(txt)	cerr << "DEBUG: " << txt << io::endl;
 #ifdef DO_DEBUG
 #	define DEBUG(txt)	DEBUG_OUT(txt)
@@ -72,14 +74,36 @@ namespace gel { namespace dwarf {
 #define DW_FORM_flag			0x0c
 #define DW_FORM_sdata			0x0d
 #define DW_FORM_strp			0x0e
-	
-#define DW_FORM_line_strp
-#define DW_FORM_strp_sup
-#define DW_FORM_strx
-#define DW_FORM_strx1
-#define DW_FORM_strx2
-#define DW_FORM_strx3
-#define DW_FORM_strx4
+#define DW_FORM_udata 0x0f
+#define DW_FORM_ref_addr 0x10
+#define DW_FORM_ref1 0x11
+#define DW_FORM_ref2 0x12
+#define DW_FORM_ref4 0x13
+#define DW_FORM_ref8 0x14
+#define DW_FORM_ref_udata 0x15
+#define DW_FORM_indirect 0x16
+#define DW_FORM_sec_offset 0x17
+#define DW_FORM_exprloc 0x18
+#define DW_FORM_flag_present 0x19
+#define DW_FORM_strx 0x1a
+#define DW_FORM_addrx 0x1b
+#define DW_FORM_ref_sup4 0x1c
+#define DW_FORM_strp_sup 0x1d
+#define DW_FORM_data16 0x1e
+#define DW_FORM_line_strp 0x1f
+#define DW_FORM_ref_sig8 0x20
+#define DW_FORM_implicit_const 0x21
+#define DW_FORM_loclistx 0x22
+#define DW_FORM_rnglistx 0x23
+#define DW_FORM_ref_sup8 0x24
+#define DW_FORM_strx1 0x25
+#define DW_FORM_strx2 0x26
+#define DW_FORM_strx3 0x27
+#define DW_FORM_strx4 0x28
+#define DW_FORM_addrx1 0x29
+#define DW_FORM_addrx2 0x2a
+#define DW_FORM_addrx3 0x2b
+#define DW_FORM_addrx4 0x2c
 	
 	
 /**
@@ -104,6 +128,14 @@ DebugLine::DebugLine(elf::File *efile): gel::DebugLine(efile), is_64(false) {
 	if(sect == nullptr)
 		return;
 	Cursor c(sect->buffer());
+
+	auto sect_str = efile->findSection(".debug_str");
+	if(sect_str != nullptr)
+		str_sect_cursor = Cursor(sect_str->buffer());
+
+	auto sect_line_str = efile->findSection(".debug_line_str");
+	if(sect_line_str != nullptr)
+		line_str_sect_cursor = Cursor(sect_line_str->buffer());
 
 	// decode the content
 	DEBUG("reading (size =" << c.size() << ")");
@@ -174,27 +206,31 @@ void DebugLine::readCU(Cursor& c) {
 void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 
 	// skip version
-	t::uint16 version;
-	error_if(!c.read(version));
-	DEBUG("version = " << version);
-	if(version > 4)
-		throw gel::Exception(_ << "DWARF version > 4 (" << version << ")");
+	error_if(!c.read(sm.version)); 
+	DEBUG("version = " << sm.version);
+	if(sm.version > 5)
+		throw gel::Exception(_ << "DWARF version > 5 (" << sm.version << ")");
 
-	// DWARF-5 (TODO)
-	// address_size (ubyte)
-	// segment_selector_size (ubyte)
+	if(sm.version >= 5) {
+		c.read(sm.address_size);
+		DEBUG("Address size = " << sm.address_size);
+		c.read(sm.segment_selector_size);
+		DEBUG("Segment selector size = " << sm.segment_selector_size);
+	}
 	
 	// read header length
 	size_t header_length = readHeaderLength(c);
 	size_t lines = c.offset() + header_length;
-	DEBUG("header length = " << io::hex(header_length));
+	DEBUG("header length = " << header_length);
 
 	// base information
 	c.read(sm.minimum_instruction_length);
-	if(version >= 4)
+	DEBUG("Min inst length = " << sm.minimum_instruction_length);
+	if(sm.version >= 4)
 		c.read(sm.maximum_operations_per_instruction);
 	else
 		sm.maximum_operations_per_instruction = 1;
+	DEBUG("Max op per insts = " << sm.maximum_operations_per_instruction);
 
 	// SM initialization
 	t::uint8 default_is_stmt;
@@ -218,28 +254,10 @@ void DebugLine::readHeader(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 #		endif
 	c.skip(sm.opcode_base - 1);
 
-	// DWARF-5 new organisation (TODO)
-	// directory_entry_format_count (ubyte)
-	// directory_entry_format (ULEB128 pair list)
-	// directories_count (ULEB128)
-	// directories (string list)
-	// filename_entry_format_count (ubyte)
-	// file_name_entry_format (ULEB128 pair list)
-	// file_names_count(ULEB128)
-	// file_name(string list)
-	
 	// include directories
-	cstring s;
-	do {
-		error_if(!c.read(s));
-		if(s)
-			sm.include_directories.add(s);
-		DEBUG("include directory = " << s);
-	} while(s);
-
+	readDir(c, sm);
 	// file names
-	while(readFile(c, sm, cu))
-		;
+	readFile(c, sm, cu);
 
 	// ensure at end of header
 	DEBUG("after header " << c.offset());
@@ -252,7 +270,7 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 			throw gel::Exception("endless debug line opcode program");
 		t::uint8 opcode;
 		error_if(!c.read(opcode));
-		DEBUG("@" << (c.offset() - 1) << " " << opcode);
+		DEBUG("@0x" << io::hex(c.offset()-1) << " " << opcode);
 
 		// special
 		if(opcode >= sm.opcode_base) {
@@ -268,12 +286,14 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 			switch(opcode) {
 			case DW_LNS_copy:
 				recordLine(sm, cu);
+				DEBUG("Copy")
 				break;
 			case DW_LNS_advance_pc:
 				advancePC(sm, cu, readLEB128U(c));
 				break;
 			case DW_LNS_advance_line: {
 					auto l = readLEB128S(c);
+					DEBUG("Advance line by " << l << " to " << (sm.line+l))
 					advanceLine(sm, l);
 					//DEBUG("advance line " << cu->_files[sm.file - 1]->path() << ":" << l << "@" << io::hex(sm.address) << " -> " << sm.line);
 				}
@@ -283,6 +303,7 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 				break;
 			case DW_LNS_set_column:
 				sm.column = readLEB128U(c);
+				DEBUG("Set column to " << sm.column)
 				break;
 			case DW_LNS_negate_stmt:
 				if(sm.bit(LineNumber::IS_STMT))
@@ -325,6 +346,7 @@ void DebugLine::runSM(Cursor& c, StateMachine& sm, CompilationUnit *cu, size_t e
 						break;
 					case DW_LNE_set_address:
 						sm.address = readAddress(c);
+						DEBUG("Set address to 0x" << io::hex(sm.address))
 						break;
 					case DW_LNE_define_file:
 						readFile(c, sm, cu);
@@ -375,33 +397,96 @@ void DebugLine::recordLine(StateMachine& sm, CompilationUnit *cu) {
 	sm.discriminator = 0;
 }
 
-bool DebugLine::readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
-	cstring s;
-	error_if(!c.read(s));
-	if(s == "")
-		return false;
-	auto dir = readLEB128U(c);
-	auto date = readLEB128U(c);
-	auto size = readLEB128U(c);
-	DEBUG("file = " << s << ", " << dir << ", " << date << ", " << size);
-	sys::Path p;
-	if(dir == 0) {
-		p = sys::Path(".") / sys::Path(s);
-		DEBUG("no dire: " << p <<);
+void DebugLine::readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
+	if(sm.version < 5) {
+		cstring s;
+		error_if(!c.read(s));
+		while(s != "") {
+			auto dir = readLEB128U(c);
+			auto date = readLEB128U(c);
+			auto size = readLEB128U(c);
+			DEBUG("file = " << s << ", " << dir << ", " << date << ", " << size);
+			sys::Path p;
+			if(dir == 0) {
+				p = sys::Path(".") / sys::Path(s);
+				DEBUG("no dire: " << p );
+			}
+			else {
+				DEBUG(dir << ":" << sm.include_directories[dir]);
+				p = sys::Path(sm.include_directories[dir]) / s;
+				DEBUG("p = " << p);
+			}
+			DEBUG("p = " << (void *)&p << ":");
+			File *f = files().get(p, nullptr);
+			if(f == nullptr) {
+				f = new File(p, date, size);
+				add(f);
+			}
+			cu->add(f);
+			error_if(!c.read(s));
+		}
 	}
-	else {
-		DEBUG(dir << ":" << sm.include_directories[dir]);
-		p = sys::Path(sm.include_directories[dir]) / s;
-		DEBUG("p = " << p);
+	else { //DWARF-5
+		t::uint8 filename_entry_format_count = readLEB128U(c);
+		DEBUG("Num file format: " << filename_entry_format_count)
+		Vector<t::uint64> content_types;
+		Vector<t::uint64> format_codes;
+		for(t::uint8 i = 0 ; i < filename_entry_format_count ; ++i) {
+			t::uint64 content_type = readLEB128U(c);
+			t::uint64 format_code = readLEB128U(c);
+			DEBUG("\tFormat: type=0x" << io::hex(content_type) << " - attr code=0x" << io::hex(format_code))
+			content_types.add(content_type);
+			format_codes.add(format_code);
+		}
+
+
+		t::uint64 file_names_count = readLEB128U(c);
+		DEBUG("Num files: " << file_names_count)
+		for(t::uint64 i = 0 ; i < file_names_count ; ++i) {
+			cstring file_name;
+			cstring dir_name = ".";
+			t::uint64 date = 0;
+			t::uint64 size = 0;
+			for(t::uint8 iformat = 0 ; iformat < filename_entry_format_count ; ++iformat) {
+				if(content_types[iformat] == DW_LNCT_path) {
+					if(format_codes[iformat] == DW_FORM_string) {
+						c.read(file_name);
+					}
+					else if(format_codes[iformat] == DW_FORM_line_strp) {
+						size_t offset = readAddress(c);
+						line_str_sect_cursor.move(offset);
+						line_str_sect_cursor.read(file_name);
+					}
+					else if(format_codes[iformat] == DW_FORM_strp) {
+						size_t offset = readAddress(c);
+						str_sect_cursor.move(offset);
+						str_sect_cursor.read(file_name);
+					}
+					else {
+						throw gel::Exception("Don't know how to get the files.");
+					}
+				}
+				else if(content_types[iformat] == DW_LNCT_directory_index) {
+					t::uint64 index = readLEB128U(c);
+					dir_name = sm.include_directories[index];
+				}
+				else {
+					throw gel::Exception("Don't know how to get the files.");
+				}
+			}
+			if(!file_name.isEmpty()) {
+				DEBUG("File " << dir_name << "/" << file_name)
+				sys::Path p;
+				p = sys::Path(dir_name) / sys::Path(file_name);
+				File *f = files().get(p, nullptr);
+				if(f == nullptr) {
+					f = new File(p, date, size);
+					add(f);
+				}
+				cu->add(f);
+			}
+		}
 	}
-	DEBUG("p = " << (void *)&p << ":");
-	File *f = files().get(p, nullptr);
-	if(f == nullptr) {
-		f = new File(p, date, size);
-		add(f);
-	}
-	cu->add(f);
-	return true;
 }
 
 size_t DebugLine::readHeaderLength(Cursor& c) {
@@ -466,6 +551,73 @@ address_t DebugLine::readAddress(Cursor& c) {
 		t::uint64 a;
 		error_if(!c.read(a));
 		return a;
+	}
+}
+
+void DebugLine::readDir(Cursor &c, StateMachine &sm) {
+	if(sm.version < 5) {
+		// include directories
+		cstring s;
+		do {
+			error_if(!c.read(s));
+			if(s) {
+				sm.include_directories.add(s);
+				DEBUG("include directory = " << s);
+			}
+		} while(s);
+	}
+	else { //version starting from DWARF-5
+		t::uint8 directory_entry_format_count;
+		c.read(directory_entry_format_count);
+		if(directory_entry_format_count > 1)
+			throw gel::Exception("Don't know how to do if there is more than one format.");
+		if(directory_entry_format_count == 0)
+			throw gel::Exception("Missing format to decode directories.");
+
+		DEBUG("Num dir format: " << directory_entry_format_count)
+		Vector<t::uint64> content_types;
+		Vector<t::uint64> format_codes;
+		for(t::uint8 i = 0 ; i < directory_entry_format_count ; ++i) {
+			t::uint64 content_type = readLEB128U(c);
+			t::uint64 format_code = readLEB128U(c);
+			DEBUG("\tFormat: type=" << io::hex(content_type) << " - attr code=" << io::hex(format_code))
+			content_types.add(content_type);
+			format_codes.add(format_code);
+		}
+
+		t::uint64 directories_count = readLEB128U(c);
+		DEBUG("Num dirs: " << directories_count)
+
+		for(t::uint64 idir = 0 ; idir < directories_count ; ++idir) {
+			cstring dir_name = "";
+			for(t::uint64 iformat = 0 ; iformat < directory_entry_format_count ; ++iformat) {
+				if(content_types[iformat] == DW_LNCT_path) {
+					if(format_codes[iformat] == DW_FORM_string) {
+						//All null terminated string are there at current c.offset()
+						c.read(dir_name);
+					}
+					else if(format_codes[iformat] == DW_FORM_line_strp) {
+						//check in .debug_line_str
+						size_t offset = readAddress(c);
+						line_str_sect_cursor.move(offset);
+						line_str_sect_cursor.read(dir_name);
+					}
+					else if(format_codes[iformat] == DW_FORM_strp) {
+						//check in .debug_str
+						size_t offset = readAddress(c);
+						str_sect_cursor.move(offset);
+						str_sect_cursor.read(dir_name);
+					}
+					else {
+						throw gel::Exception("Don't know how to get the include directory.");
+					}
+				} 
+				else {
+					throw gel::Exception("Don't know how to get the include directory.");
+				}
+			}
+			sm.include_directories.add(dir_name);
+		}
 	}
 }
 
