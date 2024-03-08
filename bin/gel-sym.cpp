@@ -53,7 +53,7 @@ public:
 					auto sym = static_cast<elf::Symbol *>(s);
 					if(only_functions) {
 						if(sym->type() == Symbol::FUNC && sym->size() > 0)
-							cout << demangle(sym->name()) << " " << io::endl;
+							cout << sym->name() << " " << io::endl;
 						continue;
 					}
 					cout <<	word_fmt(sym->value())						<< ' '
@@ -61,7 +61,7 @@ public:
 							<< io::fmt(sym->size()).width(7)				<< ' '
 							<< io::fmt(sym->elfType()).width(7)			<< ' '
 							<< io::fmt(get_section_index(f, *sym)).width(16) << ' '
-							<< demangle(sym->name())                         << io::endl;
+							<< sym->name()                         << io::endl;
 				}
 			}
 		}
