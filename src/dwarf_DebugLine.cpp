@@ -25,7 +25,7 @@
 
 namespace gel { namespace dwarf {
 
-#define DO_DEBUG
+//#define DO_DEBUG
 #define DEBUG_OUT(txt)	cerr << "DEBUG: " << txt << io::endl;
 #ifdef DO_DEBUG
 #	define DEBUG(txt)	DEBUG_OUT(txt)
@@ -463,14 +463,23 @@ void DebugLine::readFile(Cursor& c, StateMachine& sm, CompilationUnit *cu) {
 						str_sect_cursor.read(file_name);
 					}
 					else {
+						DEBUG("--> Format code: " << format_codes[iformat]);
 						throw gel::Exception("Don't know how to get the files.");
 					}
 				}
 				else if(content_types[iformat] == DW_LNCT_directory_index) {
 					t::uint64 index = readLEB128U(c);
-					dir_name = sm.include_directories[index];
+					if(index < sm.include_directories.count())
+						dir_name = sm.include_directories[index];
+				}
+				else if(content_types[iformat] == DW_LNCT_MD5) {
+					//DW_LNCT_MD5 indicates that the value is a 16-byte MD5 digest of the file
+					//contents. It is paired with form DW_FORM_data16.
+					t::uint16 a;
+					c.read(a);
 				}
 				else {
+					DEBUG("--> Content type: " << content_types[iformat]);
 					throw gel::Exception("Don't know how to get the files.");
 				}
 			}
