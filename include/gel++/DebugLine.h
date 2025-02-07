@@ -98,6 +98,7 @@ public:
 		address_t topAddress() const;
 		inline size_t size() const { return topAddress() - baseAddress(); }
 		const LineNumber *lineAt(address_t addr) const;
+		bool hasDebugInfo() { return _lines.count() > 0; }
 	private:
 		Vector<File *> _files;
 		FragTable<LineNumber> _lines;

@@ -25,7 +25,7 @@
 
 namespace gel { namespace dwarf {
 
-//#define DO_DEBUG
+// #define DO_DEBUG
 #define DEBUG_OUT(txt)	cerr << "DEBUG: " << txt << io::endl;
 #ifdef DO_DEBUG
 #	define DEBUG(txt)	DEBUG_OUT(txt)
@@ -381,8 +381,12 @@ void DebugLine::advanceLine(StateMachine& sm, t::int64 adv) {
 }
 
 void DebugLine::recordLine(StateMachine& sm, CompilationUnit *cu) {
-	DEBUG("file = " << sm.file);
-	File *file = cu->files()[sm.file - 1];
+	DEBUG("file = " << sm.file << " - addr: " << io::hex(sm.address) << " - line: " << sm.line << ": "<<sm.column);
+	File *file;
+	if(sm.version > 4)
+		file = cu->files()[sm.file];
+	else
+		file = cu->files()[sm.file - 1];
 	DEBUG("line "
 		<< io::hex(sm.address) << " "
 		<< file->path() << ":"

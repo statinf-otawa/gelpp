@@ -227,7 +227,7 @@ DebugLine::~DebugLine() {
  */
 const DebugLine::LineNumber *DebugLine::lineAt(address_t addr) const {
 	for(auto unit: _cus)
-		if(unit->baseAddress() <= addr && addr < unit->topAddress())
+		if(unit->hasDebugInfo() && unit->baseAddress() <= addr && addr < unit->topAddress())
 			return unit->lineAt(addr);
 	return nullptr;
 }
